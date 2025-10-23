@@ -1,9 +1,10 @@
 "use client";
 
-import { Button, Card, Form, Input, Typography, message } from "antd";
+import { Button, Card, Form, Input, Typography } from "antd";
 import { UserCircle, Lock } from "@phosphor-icons/react";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 const { Title, Text } = Typography;
 
@@ -23,13 +24,13 @@ export default function LoginPage() {
       const success = await login(values.username, values.password);
 
       if (success) {
-        message.success("Login berhasil!");
+        toast.success("Login berhasil!");
         // Redirect is handled by AuthContext
       } else {
-        message.error("Username atau password salah!");
+        toast.error("Username atau password salah!");
       }
     } catch {
-      message.error("Terjadi kesalahan saat login");
+      toast.error("Terjadi kesalahan saat login");
     } finally {
       setLoading(false);
     }
@@ -38,9 +39,9 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
       <Card className="w-full max-w-md shadow-lg">
-        <div className="text-center mb-8">
-          <Title level={2} className="mb-2">
-            Login Admin
+        <div className="text-center mb-5">
+          <Title level={2} className="!mb-2">
+            Login Admin Databook
           </Title>
           <Text type="secondary">
             Silakan masukkan username dan password Anda
@@ -56,7 +57,7 @@ export default function LoginPage() {
         >
           <Form.Item
             name="username"
-            label="Username"
+            className="!mb-4"
             rules={[
               { required: true, message: "Username tidak boleh kosong!" },
               { min: 3, message: "Username minimal 3 karakter!" },
@@ -70,7 +71,6 @@ export default function LoginPage() {
 
           <Form.Item
             name="password"
-            label="Password"
             rules={[
               { required: true, message: "Password tidak boleh kosong!" },
               { min: 6, message: "Password minimal 6 karakter!" },

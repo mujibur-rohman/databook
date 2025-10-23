@@ -6,20 +6,31 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio",
+    "db:seed": "tsx scripts/seed.ts"
   },
   "dependencies": {
     "@ant-design/nextjs-registry": "^1.1.0",
     "@phosphor-icons/react": "^2.1.10",
     "@tanstack/react-query": "^5.90.3",
+    "@types/bcryptjs": "^2.4.6",
     "@types/crypto-js": "^4.2.2",
     "@types/js-cookie": "^3.0.6",
+    "@types/pg": "^8.15.5",
     "antd": "^5.27.5",
     "axios": "^1.12.2",
+    "bcryptjs": "^3.0.2",
     "crypto-js": "^4.2.0",
+    "drizzle-kit": "^0.31.5",
+    "drizzle-orm": "^0.44.6",
+    "jose": "^6.1.0",
     "js-cookie": "^3.0.5",
     "next": "14.2.33",
     "nextjs-toploader": "^3.9.17",
+    "pg": "^8.16.3",
     "react": "^18",
     "react-dom": "^18",
     "sonner": "^2.0.7"
@@ -32,6 +43,7 @@
     "eslint-config-next": "14.2.33",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
+    "tsx": "^4.20.6",
     "typescript": "^5"
   }
 }

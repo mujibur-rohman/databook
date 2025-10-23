@@ -1,29 +1,23 @@
 "use client";
 
 import React, { useState } from "react";
-import {
-  Layout,
-  Menu,
-  Button,
-  Typography,
-  Avatar,
-  Dropdown,
-  message,
-} from "antd";
+import { Layout, Menu, Button, Typography, Avatar, Dropdown } from "antd";
 import type { MenuProps } from "antd";
 import {
   House,
   Database,
-  Users,
-  Package,
   Gear,
   List,
   SignOut,
   User,
   CaretDown,
+  TreeStructure,
+  Tag,
+  Stack,
 } from "@phosphor-icons/react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 const { Header, Sider, Content } = Layout;
 const { Title, Text } = Typography;
@@ -33,7 +27,9 @@ interface AdminLayoutProps {
 }
 
 interface User {
+  id: number;
   username: string;
+  email: string;
   role: string;
 }
 
@@ -43,9 +39,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
 
-  const handleLogout = () => {
-    logout();
-    message.success("Logout berhasil!");
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast.success("Logout berhasil!");
+    } catch {
+      toast.error("Terjadi kesalahan saat logout");
+    }
   };
 
   const menuItems: MenuProps["items"] = [
@@ -61,22 +61,22 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       label: "Master Data",
       children: [
         {
-          key: "users",
-          icon: <Users size={16} />,
-          label: "Pengguna",
-          onClick: () => router.push("/admin/master-data/users"),
+          key: "branches",
+          icon: <TreeStructure size={16} />,
+          label: "Cabang",
+          onClick: () => router.push("/admin/master-data/branches"),
         },
         {
-          key: "products",
-          icon: <Package size={16} />,
-          label: "Produk",
-          onClick: () => router.push("/admin/master-data/products"),
+          key: "types",
+          icon: <Tag size={16} />,
+          label: "Tipe",
+          onClick: () => router.push("/admin/master-data/types"),
         },
         {
-          key: "categories",
-          icon: <List size={16} />,
-          label: "Kategori",
-          onClick: () => router.push("/admin/master-data/categories"),
+          key: "series",
+          icon: <Stack size={16} />,
+          label: "Series",
+          onClick: () => router.push("/admin/master-data/series"),
         },
       ],
     },
@@ -108,6 +108,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   // Get current selected keys based on pathname
   const getSelectedKeys = () => {
     if (pathname === "/admin/dashboard") return ["dashboard"];
+    if (pathname.includes("/admin/master-data/branches")) return ["branches"];
+    if (pathname.includes("/admin/master-data/types")) return ["types"];
+    if (pathname.includes("/admin/master-data/series")) return ["series"];
     if (pathname.includes("/admin/master-data/users")) return ["users"];
     if (pathname.includes("/admin/master-data/products")) return ["products"];
     if (pathname.includes("/admin/master-data/categories"))
@@ -146,7 +149,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             </div>
             {!collapsed && (
               <div>
-                <Title level={5} className="mb-0 text-gray-800">
+                <Title level={5} className="!mb-0 text-gray-800">
                   DataBook
                 </Title>
                 <Text type="secondary" className="text-xs">

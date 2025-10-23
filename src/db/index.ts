@@ -1,0 +1,12 @@
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
+import * as schema from "./schema";
+
+const pool = new Pool({
+  connectionString:
+    process.env.DATABASE_URL ||
+    "postgresql://postgres:muji6666@localhost:5432/databook",
+});
+
+export const db = drizzle(pool, { schema });
+export type DbType = typeof db;

@@ -4,7 +4,9 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 
 interface User {
+  id: number;
   username: string;
+  email: string;
   role: string;
 }
 
@@ -12,7 +14,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   login: (username: string, password: string) => Promise<boolean>;
-  logout: () => void;
+  logout: () => Promise<void>;
   loading: boolean;
 }
 
@@ -28,18 +30,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Check if user is authenticated on app load
-    const checkAuth = () => {
+    const checkAuth = async () => {
       try {
-        const isAuthenticatedStorage = localStorage.getItem("isAuthenticated");
-        const userData = localStorage.getItem("user");
+        const response = await fetch("/api/auth/me", {
+          method: "GET",
+          credentials: "include",
+        });
 
-        if (isAuthenticatedStorage === "true" && userData) {
-          setUser(JSON.parse(userData));
+        if (response.ok) {
+          const data = await response.json();
+          if (data.authenticated && data.user) {
+            setUser(data.user);
+          }
         }
       } catch (error) {
         console.error("Error checking authentication:", error);
-        localStorage.removeItem("isAuthenticated");
-        localStorage.removeItem("user");
       }
       setLoading(false);
     };
@@ -68,17 +73,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     password: string
   ): Promise<boolean> => {
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, password }),
+        credentials: "include",
+      });
 
-      // Simple validation (replace with real API call)
-      if (username === "admin" && password === "admin123") {
-        const userData = { username, role: "admin" };
+      const data = await response.json();
 
-        localStorage.setItem("isAuthenticated", "true");
-        localStorage.setItem("user", JSON.stringify(userData));
-        setUser(userData);
-
+      if (response.ok && data.success) {
+        setUser(data.user);
         return true;
       }
 
@@ -89,11 +96,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem("isAuthenticated");
-    localStorage.removeItem("user");
-    setUser(null);
-    router.push("/login");
+  const logout = async () => {
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      setUser(null);
+      router.push("/login");
+    }
   };
 
   const value = {
