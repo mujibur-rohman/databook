@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" fill="none">
+  <!-- Background -->
+  <rect width="180" height="180" rx="40" fill="#1890ff"/>
+  
+  <!-- Book icon -->
+  <path d="M45 35h75c6.6 0 12 5.4 12 12v86c0 6.6-5.4 12-12 12H45c-6.6 0-12-5.4-12-12V47c0-6.6 5.4-12 12-12z" fill="white"/>
+  
+  <!-- Pages -->
+  <path d="M57 55h51v10H57V55zm0 20h51v10H57V75zm0 20h39v10H57V95z" fill="#1890ff"/>
+  
+  <!-- Data symbols -->
+  <circle cx="135" cy="60" r="8" fill="#52c41a"/>
+  <circle cx="135" cy="90" r="8" fill="#faad14"/>
+  <circle cx="135" cy="120" r="8" fill="#f5222d"/>
+  
+  <!-- Title -->
+  <text x="90" y="160" font-family="Arial, sans-serif" font-size="16" font-weight="bold" text-anchor="middle" fill="white">DataBook</text>
+</svg>

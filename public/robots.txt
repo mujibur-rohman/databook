@@ -1,0 +1,10 @@
+User-agent: *
+Disallow: /
+
+# Admin panel should not be indexed by search engines
+# This is a private administrative interface
+Disallow: /admin/
+Disallow: /api/
+Disallow: /login/
+
+# No sitemap needed for admin panel

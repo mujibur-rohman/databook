@@ -1,6 +1,6 @@
 "use client";
-
 import { useState, useEffect } from "react";
+
 import {
   Card,
   Table,
@@ -145,6 +145,11 @@ export default function TypesPage() {
 
     setSortBy(newSortBy);
     setSortOrder(newSortOrder);
+    setPagination((prev) => ({
+      ...prev,
+      current: pag.current,
+      pageSize: pag.pageSize,
+    }));
 
     fetchData(
       pag.current,

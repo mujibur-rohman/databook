@@ -6,7 +6,6 @@ import type { MenuProps } from "antd";
 import {
   House,
   Database,
-  Gear,
   List,
   SignOut,
   User,
@@ -79,12 +78,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           onClick: () => router.push("/admin/master-data/series"),
         },
       ],
-    },
-    {
-      key: "settings",
-      icon: <Gear size={18} />,
-      label: "Pengaturan",
-      onClick: () => router.push("/admin/settings"),
     },
   ];
 

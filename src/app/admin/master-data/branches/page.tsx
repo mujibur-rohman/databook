@@ -1,6 +1,6 @@
 "use client";
-
 import { useState, useEffect } from "react";
+
 import {
   Card,
   Table,
@@ -109,6 +109,11 @@ export default function BranchesPage() {
 
     setSortBy(newSortBy);
     setSortOrder(newSortOrder);
+    setPagination((prev) => ({
+      ...prev,
+      current: pag.current,
+      pageSize: pag.pageSize,
+    }));
 
     fetchData(pag.current, pag.pageSize, searchText, newSortBy, newSortOrder);
   };
