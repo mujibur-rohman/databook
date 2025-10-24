@@ -238,8 +238,8 @@ export default function TypesPage() {
       key: "no",
       width: 60,
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      render: (_: unknown, __: unknown, index: number) => 
-        ((pagination.current - 1) * pagination.pageSize) + index + 1,
+      render: (_: unknown, __: unknown, index: number) =>
+        (pagination.current - 1) * pagination.pageSize + index + 1,
     },
     {
       title: "Nama Type",
