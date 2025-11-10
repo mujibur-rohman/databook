@@ -20,8 +20,10 @@ import {
   MagnifyingGlass,
   PencilSimple,
   Trash,
+  Upload,
 } from "@phosphor-icons/react";
 import AdminLayout from "@/components/layouts/AdminLayout";
+import * as XLSX from "xlsx";
 
 const { Title } = Typography;
 const { Search } = Input;
@@ -186,6 +188,42 @@ export default function BranchesPage() {
     }
   };
 
+  const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: "array" });
+
+        // Ambil sheet pertama
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+
+        // Convert ke JSON
+        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+        console.log("Imported Branches data:", jsonData);
+        console.log("File name:", file.name);
+        console.log("File size:", file.size, "bytes");
+        console.log("File type:", file.type);
+
+        message.success(
+          `File ${file.name} berhasil diproses! Check console untuk melihat data.`
+        );
+
+        // Reset input file
+        event.target.value = "";
+      } catch (error) {
+        console.error("Error parsing file:", error);
+        message.error("Gagal memproses file. Pastikan format file benar.");
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
   const columns = [
     {
       title: "No",
@@ -259,9 +297,30 @@ export default function BranchesPage() {
               Branches Management
             </Title>
           </div>
-          <Button type="primary" icon={<Plus size={16} />} onClick={handleAdd}>
-            Tambah Branch
-          </Button>
+          <Space>
+            <input
+              type="file"
+              id="import-branches-file"
+              accept=".xlsx,.xls,.csv"
+              onChange={handleImport}
+              style={{ display: "none" }}
+            />
+            <Button
+              icon={<Upload size={16} />}
+              onClick={() =>
+                document.getElementById("import-branches-file")?.click()
+              }
+            >
+              Import Excel/CSV
+            </Button>
+            <Button
+              type="primary"
+              icon={<Plus size={16} />}
+              onClick={handleAdd}
+            >
+              Tambah Branch
+            </Button>
+          </Space>
         </div>
 
         <Card>

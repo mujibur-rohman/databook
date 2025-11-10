@@ -5,6 +5,7 @@ import {
   timestamp,
   varchar,
   boolean,
+  integer,
 } from "drizzle-orm/pg-core";
 
 // Users table
@@ -47,6 +48,22 @@ export const types = pgTable("types", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+// Sell in table
+export const sellIn = pgTable("sell_in", {
+  id: serial("id").primaryKey(),
+  quantity: integer("quantity").notNull(),
+  sellDate: timestamp("sell_date").notNull(),
+  description: varchar("description", { length: 255 }).notNull(),
+  branchId: integer("branch_id")
+    .notNull()
+    .references(() => branches.id, { onDelete: "cascade" }),
+  typeId: integer("type_id")
+    .notNull()
+    .references(() => types.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 // Types for TypeScript
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -56,3 +73,5 @@ export type Series = typeof series.$inferSelect;
 export type NewSeries = typeof series.$inferInsert;
 export type Type = typeof types.$inferSelect;
 export type NewType = typeof types.$inferInsert;
+export type SellIn = typeof sellIn.$inferSelect;
+export type NewSellIn = typeof sellIn.$inferInsert;

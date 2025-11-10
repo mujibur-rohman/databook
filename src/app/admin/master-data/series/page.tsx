@@ -23,6 +23,7 @@ import {
   Trash,
 } from "@phosphor-icons/react";
 import AdminLayout from "@/components/layouts/AdminLayout";
+import ImportData from "@/components/ImportData";
 
 const { Title } = Typography;
 const { Search } = Input;
@@ -251,9 +252,16 @@ export default function SeriesPage() {
               Series Management
             </Title>
           </div>
-          <Button type="primary" icon={<Plus size={16} />} onClick={handleAdd}>
-            Tambah Series
-          </Button>
+          <Space>
+            <ImportData maxFileSize={30} onCancel={() => {}} visible />
+            <Button
+              type="primary"
+              icon={<Plus size={16} />}
+              onClick={handleAdd}
+            >
+              Tambah Series
+            </Button>
+          </Space>
         </div>
 
         <Card>

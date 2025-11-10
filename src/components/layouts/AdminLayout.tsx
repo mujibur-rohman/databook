@@ -13,6 +13,7 @@ import {
   TreeStructure,
   Tag,
   Stack,
+  TrendUp,
 } from "@phosphor-icons/react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
@@ -79,6 +80,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         },
       ],
     },
+    {
+      key: "sell-in",
+      icon: <TrendUp size={18} />,
+      label: "Sell-In Data",
+      onClick: () => router.push("/admin/sell-in"),
+    },
   ];
 
   const userMenuItems = [
@@ -104,6 +111,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     if (pathname.includes("/admin/master-data/branches")) return ["branches"];
     if (pathname.includes("/admin/master-data/types")) return ["types"];
     if (pathname.includes("/admin/master-data/series")) return ["series"];
+    if (pathname.includes("/admin/sell-in")) return ["sell-in"];
     if (pathname.includes("/admin/master-data/users")) return ["users"];
     if (pathname.includes("/admin/master-data/products")) return ["products"];
     if (pathname.includes("/admin/master-data/categories"))
