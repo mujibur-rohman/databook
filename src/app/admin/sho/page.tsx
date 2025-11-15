@@ -15,7 +15,12 @@ import {
   Tooltip,
   Badge,
 } from "antd";
-import { Archive, MagnifyingGlass, FunnelSimple, FileArrowDown } from "@phosphor-icons/react";
+import {
+  Archive,
+  MagnifyingGlass,
+  FunnelSimple,
+  FileArrowDown,
+} from "@phosphor-icons/react";
 import AdminLayout from "@/components/layouts/AdminLayout";
 import dayjs from "dayjs";
 
@@ -203,25 +208,61 @@ export default function ShoPage() {
   const handleSearch = (value: string) => {
     setSearchText(value);
     setPagination((prev) => ({ ...prev, current: 1 }));
-    fetchData(1, pagination.pageSize, value, sortBy, sortOrder, filterBranchId, filterTypeId, filterStatus);
+    fetchData(
+      1,
+      pagination.pageSize,
+      value,
+      sortBy,
+      sortOrder,
+      filterBranchId,
+      filterTypeId,
+      filterStatus
+    );
   };
 
   const handleBranchFilter = (value: string) => {
     setFilterBranchId(value);
     setPagination((prev) => ({ ...prev, current: 1 }));
-    fetchData(1, pagination.pageSize, searchText, sortBy, sortOrder, value, filterTypeId, filterStatus);
+    fetchData(
+      1,
+      pagination.pageSize,
+      searchText,
+      sortBy,
+      sortOrder,
+      value,
+      filterTypeId,
+      filterStatus
+    );
   };
 
   const handleTypeFilter = (value: string) => {
     setFilterTypeId(value);
     setPagination((prev) => ({ ...prev, current: 1 }));
-    fetchData(1, pagination.pageSize, searchText, sortBy, sortOrder, filterBranchId, value, filterStatus);
+    fetchData(
+      1,
+      pagination.pageSize,
+      searchText,
+      sortBy,
+      sortOrder,
+      filterBranchId,
+      value,
+      filterStatus
+    );
   };
 
   const handleStatusFilter = (value: string) => {
     setFilterStatus(value);
     setPagination((prev) => ({ ...prev, current: 1 }));
-    fetchData(1, pagination.pageSize, searchText, sortBy, sortOrder, filterBranchId, filterTypeId, value);
+    fetchData(
+      1,
+      pagination.pageSize,
+      searchText,
+      sortBy,
+      sortOrder,
+      filterBranchId,
+      filterTypeId,
+      value
+    );
   };
 
   const clearFilters = () => {
@@ -236,30 +277,32 @@ export default function ShoPage() {
   // Import and Export handlers
   const handleImportData = () => {
     console.log("🚀 Import SHO Data - Feature Development");
-    message.info("Import feature akan segera hadir. Lihat console untuk struktur data yang diharapkan.");
-    
+    message.info(
+      "Import feature akan segera hadir. Lihat console untuk struktur data yang diharapkan."
+    );
+
     const exampleData = [
       {
-        "Category": "Motor",
-        "Color": "Red",
-        "Location": "Gudang A",
-        "Quantity": 5,
+        Category: "Motor",
+        Color: "Red",
+        Location: "Gudang A",
+        Quantity: 5,
         "Date GRN": "2024-01-15",
         "Rangka Number": "MH3JKE12345678901",
-        "Year": "2024",
+        Year: "2024",
         "Position Stock": "Available",
-        "Status": "Active",
-        "Count": 5,
+        Status: "Active",
+        Count: 5,
         "Umur Stock": 30,
         "Umur Mutasi": 15,
         "Source Doc": "GRN001",
         "Source Branch": "Main Store",
-        "Date": "2024-01-15",
+        Date: "2024-01-15",
         "Branch Code": "SMA-YMH-LBM",
         "Type Name": "XMAX TECH MAX",
-      }
+      },
     ];
-    
+
     console.group("📋 SHO Data Import Structure");
     console.table(exampleData[0]);
     console.log("📊 Total Sample Records:", exampleData.length);
@@ -311,19 +354,23 @@ export default function ShoPage() {
       dataIndex: "rangkaNumber",
       key: "rangkaNumber",
       width: 160,
-      render: (rangkaNo: string | null) => 
+      render: (rangkaNo: string | null) =>
         rangkaNo ? (
           <Tooltip title={rangkaNo}>
-            <Text code className="text-xs">{rangkaNo}</Text>
+            <Text code className="text-xs">
+              {rangkaNo}
+            </Text>
           </Tooltip>
-        ) : "-",
+        ) : (
+          "-"
+        ),
     },
     {
       title: "Color",
       dataIndex: "color",
       key: "color",
       width: 100,
-      render: (color: string | null) => 
+      render: (color: string | null) =>
         color ? <Tag color="cyan">{color}</Tag> : "-",
     },
     {
@@ -354,11 +401,7 @@ export default function ShoPage() {
       align: "center" as const,
       render: (umurStock: number | null) => {
         if (!umurStock) return "-";
-        return (
-          <Tag color={getStockAgeColor(umurStock)}>
-            {umurStock} days
-          </Tag>
-        );
+        return <Tag color={getStockAgeColor(umurStock)}>{umurStock} days</Tag>;
       },
     },
     {
@@ -375,8 +418,12 @@ export default function ShoPage() {
       width: 100,
       render: (status: string | null) => {
         if (!status) return "-";
-        const color = status === "Active" ? "green" : 
-                    status === "Inactive" ? "red" : "default";
+        const color =
+          status === "Active"
+            ? "green"
+            : status === "Inactive"
+            ? "red"
+            : "default";
         return <Tag color={color}>{status}</Tag>;
       },
     },
@@ -386,8 +433,12 @@ export default function ShoPage() {
       key: "dateGrn",
       sorter: true,
       width: 120,
-      render: (date: string | null) => 
-        date ? <Text className="text-xs">{dayjs(date).format("DD/MM/YY")}</Text> : "-",
+      render: (date: string | null) =>
+        date ? (
+          <Text className="text-xs">{dayjs(date).format("DD/MM/YY")}</Text>
+        ) : (
+          "-"
+        ),
     },
     {
       title: "Source",
@@ -420,9 +471,7 @@ export default function ShoPage() {
     {
       title: "Type",
       key: "type",
-      render: (record: ShoData) => (
-        <Tag color="blue">{record.type.name}</Tag>
-      ),
+      render: (record: ShoData) => <Tag color="blue">{record.type.name}</Tag>,
     },
     {
       title: "Series",
@@ -458,7 +507,7 @@ export default function ShoPage() {
                 <div className="text-sm text-gray-600">Total Records</div>
               </div>
             </Card>
-            
+
             <Card>
               <div className="text-center">
                 <div className="text-2xl font-bold text-green-600">
@@ -467,11 +516,14 @@ export default function ShoPage() {
                 <div className="text-sm text-gray-600">Total Stock</div>
               </div>
             </Card>
-            
+
             <Card>
               <div className="text-center">
                 <div className="text-2xl font-bold text-orange-600">
-                  {Math.round(data.reduce((sum, item) => sum + (item.umurStock || 0), 0) / data.length) || 0}
+                  {Math.round(
+                    data.reduce((sum, item) => sum + (item.umurStock || 0), 0) /
+                      data.length
+                  ) || 0}
                 </div>
                 <div className="text-sm text-gray-600">Avg Stock Age</div>
               </div>
@@ -480,7 +532,7 @@ export default function ShoPage() {
             <Card>
               <div className="text-center">
                 <div className="text-2xl font-bold text-red-600">
-                  {data.filter(item => (item.umurStock || 0) > 90).length}
+                  {data.filter((item) => (item.umurStock || 0) > 90).length}
                 </div>
                 <div className="text-sm text-gray-600">Old Stock (90+)</div>
               </div>
@@ -489,7 +541,7 @@ export default function ShoPage() {
             <Card>
               <div className="text-center">
                 <div className="text-2xl font-bold text-purple-600">
-                  {data.filter(item => item.status === "Active").length}
+                  {data.filter((item) => item.status === "Active").length}
                 </div>
                 <div className="text-sm text-gray-600">Active Stock</div>
               </div>
@@ -559,8 +611,8 @@ export default function ShoPage() {
                   Import Data (Console)
                 </Button>
                 <Tooltip title="Export current data to console">
-                  <Button 
-                    onClick={handleExportData} 
+                  <Button
+                    onClick={handleExportData}
                     icon={<FileArrowDown size={16} />}
                     disabled={data.length === 0}
                   >

@@ -65,8 +65,7 @@ export async function GET(request: NextRequest) {
       orderCondition =
         sortOrder === "asc" ? asc(stu.quantity) : desc(stu.quantity);
     } else if (sortBy === "date") {
-      orderCondition =
-        sortOrder === "asc" ? asc(stu.date) : desc(stu.date);
+      orderCondition = sortOrder === "asc" ? asc(stu.date) : desc(stu.date);
     } else if (sortBy === "machineNumber") {
       orderCondition =
         sortOrder === "asc" ? asc(stu.machineNumber) : desc(stu.machineNumber);

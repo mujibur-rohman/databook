@@ -14,7 +14,12 @@ import {
   message,
   Tooltip,
 } from "antd";
-import { FileText, MagnifyingGlass, FunnelSimple, FileArrowDown } from "@phosphor-icons/react";
+import {
+  FileText,
+  MagnifyingGlass,
+  FunnelSimple,
+  FileArrowDown,
+} from "@phosphor-icons/react";
 import AdminLayout from "@/components/layouts/AdminLayout";
 import dayjs from "dayjs";
 
@@ -215,25 +220,61 @@ export default function DoPenjualanPage() {
   const handleSearch = (value: string) => {
     setSearchText(value);
     setPagination((prev) => ({ ...prev, current: 1 }));
-    fetchData(1, pagination.pageSize, value, sortBy, sortOrder, filterBranchId, filterTypeId, filterCashOrCredit);
+    fetchData(
+      1,
+      pagination.pageSize,
+      value,
+      sortBy,
+      sortOrder,
+      filterBranchId,
+      filterTypeId,
+      filterCashOrCredit
+    );
   };
 
   const handleBranchFilter = (value: string) => {
     setFilterBranchId(value);
     setPagination((prev) => ({ ...prev, current: 1 }));
-    fetchData(1, pagination.pageSize, searchText, sortBy, sortOrder, value, filterTypeId, filterCashOrCredit);
+    fetchData(
+      1,
+      pagination.pageSize,
+      searchText,
+      sortBy,
+      sortOrder,
+      value,
+      filterTypeId,
+      filterCashOrCredit
+    );
   };
 
   const handleTypeFilter = (value: string) => {
     setFilterTypeId(value);
     setPagination((prev) => ({ ...prev, current: 1 }));
-    fetchData(1, pagination.pageSize, searchText, sortBy, sortOrder, filterBranchId, value, filterCashOrCredit);
+    fetchData(
+      1,
+      pagination.pageSize,
+      searchText,
+      sortBy,
+      sortOrder,
+      filterBranchId,
+      value,
+      filterCashOrCredit
+    );
   };
 
   const handleCashOrCreditFilter = (value: string) => {
     setFilterCashOrCredit(value);
     setPagination((prev) => ({ ...prev, current: 1 }));
-    fetchData(1, pagination.pageSize, searchText, sortBy, sortOrder, filterBranchId, filterTypeId, value);
+    fetchData(
+      1,
+      pagination.pageSize,
+      searchText,
+      sortBy,
+      sortOrder,
+      filterBranchId,
+      filterTypeId,
+      value
+    );
   };
 
   const clearFilters = () => {
@@ -248,27 +289,29 @@ export default function DoPenjualanPage() {
   // Import and Export handlers
   const handleImportData = () => {
     console.log("🚀 Import DO Penjualan Data - Feature Development");
-    message.info("Import feature akan segera hadir. Lihat console untuk struktur data yang diharapkan.");
-    
+    message.info(
+      "Import feature akan segera hadir. Lihat console untuk struktur data yang diharapkan."
+    );
+
     const exampleData = [
       {
         "SO Number": "SO001/2024",
         "SO Date": "2024-01-15",
         "SO State": "Confirmed",
         "Cash or Credit": "Credit",
-        "TOP": "30 Days",
+        TOP: "30 Days",
         "Customer Code": "CUST001",
         "Customer Name": "John Doe",
-        "KTP": "3201234567890123",
-        "Alamat": "Jl. Sudirman No. 123",
-        "Kota": "Jakarta",
-        "Kecamatan": "Menteng",
-        "Birthday": "1990-01-01",
+        KTP: "3201234567890123",
+        Alamat: "Jl. Sudirman No. 123",
+        Kota: "Jakarta",
+        Kecamatan: "Menteng",
+        Birthday: "1990-01-01",
         "Phone Number": "081234567890",
-        "POS": "Sales Counter",
-        "Color": "Red",
-        "Quantity": 1,
-        "Year": "2024",
+        POS: "Sales Counter",
+        Color: "Red",
+        Quantity: 1,
+        Year: "2024",
         "Engine Number": "ENG123456789",
         "Chassis Number": "CHS987654321",
         "Product Category": "Motor",
@@ -279,12 +322,12 @@ export default function DoPenjualanPage() {
         "Sales Source": "Walk In",
         "Source Document": "Manual",
         "JP PO": 500000,
-        "Tenor": 24,
+        Tenor: 24,
         "Branch Code": "SMA-YMH-LBM",
         "Type Name": "XMAX TECH MAX",
-      }
+      },
     ];
-    
+
     console.group("📋 DO Penjualan Data Import Structure");
     console.table(exampleData[0]);
     console.log("📊 Total Sample Records:", exampleData.length);
@@ -322,7 +365,7 @@ export default function DoPenjualanPage() {
       key: "soDate",
       sorter: true,
       width: 120,
-      render: (date: string | null) => 
+      render: (date: string | null) =>
         date ? <Text>{dayjs(date).format("DD/MM/YYYY")}</Text> : "-",
     },
     {
@@ -344,8 +387,12 @@ export default function DoPenjualanPage() {
       key: "payment",
       width: 120,
       render: (record: DoPenjualanData) => {
-        const color = record.cashOrCredit === "Cash" ? "green" : 
-                    record.cashOrCredit === "Credit" ? "blue" : "default";
+        const color =
+          record.cashOrCredit === "Cash"
+            ? "green"
+            : record.cashOrCredit === "Credit"
+            ? "blue"
+            : "default";
         return <Tag color={color}>{record.cashOrCredit || "-"}</Tag>;
       },
     },
@@ -370,10 +417,14 @@ export default function DoPenjualanPage() {
       render: (record: DoPenjualanData) => (
         <div>
           <Tooltip title={record.engineNumber}>
-            <Text code className="text-xs block">E: {record.engineNumber?.slice(-8) || "-"}</Text>
+            <Text code className="text-xs block">
+              E: {record.engineNumber?.slice(-8) || "-"}
+            </Text>
           </Tooltip>
           <Tooltip title={record.chassisNumber}>
-            <Text code className="text-xs">C: {record.chassisNumber?.slice(-8) || "-"}</Text>
+            <Text code className="text-xs">
+              C: {record.chassisNumber?.slice(-8) || "-"}
+            </Text>
           </Tooltip>
         </div>
       ),
@@ -383,7 +434,7 @@ export default function DoPenjualanPage() {
       dataIndex: "color",
       key: "color",
       width: 100,
-      render: (color: string | null) => 
+      render: (color: string | null) =>
         color ? <Tag color="cyan">{color}</Tag> : "-",
     },
     {
@@ -456,7 +507,7 @@ export default function DoPenjualanPage() {
                 <div className="text-sm text-gray-600">Total Records</div>
               </div>
             </Card>
-            
+
             <Card>
               <div className="text-center">
                 <div className="text-2xl font-bold text-green-600">
@@ -465,11 +516,11 @@ export default function DoPenjualanPage() {
                 <div className="text-sm text-gray-600">Total Quantity</div>
               </div>
             </Card>
-            
+
             <Card>
               <div className="text-center">
                 <div className="text-2xl font-bold text-purple-600">
-                  {data.filter(item => item.cashOrCredit === "Cash").length}
+                  {data.filter((item) => item.cashOrCredit === "Cash").length}
                 </div>
                 <div className="text-sm text-gray-600">Cash Sales</div>
               </div>
@@ -478,7 +529,7 @@ export default function DoPenjualanPage() {
             <Card>
               <div className="text-center">
                 <div className="text-2xl font-bold text-orange-600">
-                  {data.filter(item => item.cashOrCredit === "Credit").length}
+                  {data.filter((item) => item.cashOrCredit === "Credit").length}
                 </div>
                 <div className="text-sm text-gray-600">Credit Sales</div>
               </div>
@@ -548,8 +599,8 @@ export default function DoPenjualanPage() {
                   Import Data (Console)
                 </Button>
                 <Tooltip title="Export current data to console">
-                  <Button 
-                    onClick={handleExportData} 
+                  <Button
+                    onClick={handleExportData}
                     icon={<FileArrowDown size={16} />}
                     disabled={data.length === 0}
                   >

@@ -81,8 +81,7 @@ export async function GET(request: NextRequest) {
       orderCondition =
         sortOrder === "asc" ? asc(sho.dateGrn) : desc(sho.dateGrn);
     } else if (sortBy === "date") {
-      orderCondition =
-        sortOrder === "asc" ? asc(sho.date) : desc(sho.date);
+      orderCondition = sortOrder === "asc" ? asc(sho.date) : desc(sho.date);
     } else {
       orderCondition =
         sortOrder === "asc" ? asc(sho.createdAt) : desc(sho.createdAt);

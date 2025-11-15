@@ -72,19 +72,29 @@ export async function GET(request: NextRequest) {
     let orderCondition;
     if (sortBy === "quantity") {
       orderCondition =
-        sortOrder === "asc" ? asc(doPenjualan.quantity) : desc(doPenjualan.quantity);
+        sortOrder === "asc"
+          ? asc(doPenjualan.quantity)
+          : desc(doPenjualan.quantity);
     } else if (sortBy === "soDate") {
       orderCondition =
-        sortOrder === "asc" ? asc(doPenjualan.soDate) : desc(doPenjualan.soDate);
+        sortOrder === "asc"
+          ? asc(doPenjualan.soDate)
+          : desc(doPenjualan.soDate);
     } else if (sortBy === "customerName") {
       orderCondition =
-        sortOrder === "asc" ? asc(doPenjualan.customerName) : desc(doPenjualan.customerName);
+        sortOrder === "asc"
+          ? asc(doPenjualan.customerName)
+          : desc(doPenjualan.customerName);
     } else if (sortBy === "soNumber") {
       orderCondition =
-        sortOrder === "asc" ? asc(doPenjualan.soNumber) : desc(doPenjualan.soNumber);
+        sortOrder === "asc"
+          ? asc(doPenjualan.soNumber)
+          : desc(doPenjualan.soNumber);
     } else {
       orderCondition =
-        sortOrder === "asc" ? asc(doPenjualan.createdAt) : desc(doPenjualan.createdAt);
+        sortOrder === "asc"
+          ? asc(doPenjualan.createdAt)
+          : desc(doPenjualan.createdAt);
     }
 
     // Get paginated data with relations

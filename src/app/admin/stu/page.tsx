@@ -14,7 +14,12 @@ import {
   message,
   Tooltip,
 } from "antd";
-import { Truck, MagnifyingGlass, FunnelSimple, FileArrowDown } from "@phosphor-icons/react";
+import {
+  Truck,
+  MagnifyingGlass,
+  FunnelSimple,
+  FileArrowDown,
+} from "@phosphor-icons/react";
 import AdminLayout from "@/components/layouts/AdminLayout";
 import dayjs from "dayjs";
 
@@ -187,19 +192,43 @@ export default function StuPage() {
   const handleSearch = (value: string) => {
     setSearchText(value);
     setPagination((prev) => ({ ...prev, current: 1 }));
-    fetchData(1, pagination.pageSize, value, sortBy, sortOrder, filterBranchId, filterTypeId);
+    fetchData(
+      1,
+      pagination.pageSize,
+      value,
+      sortBy,
+      sortOrder,
+      filterBranchId,
+      filterTypeId
+    );
   };
 
   const handleBranchFilter = (value: string) => {
     setFilterBranchId(value);
     setPagination((prev) => ({ ...prev, current: 1 }));
-    fetchData(1, pagination.pageSize, searchText, sortBy, sortOrder, value, filterTypeId);
+    fetchData(
+      1,
+      pagination.pageSize,
+      searchText,
+      sortBy,
+      sortOrder,
+      value,
+      filterTypeId
+    );
   };
 
   const handleTypeFilter = (value: string) => {
     setFilterTypeId(value);
     setPagination((prev) => ({ ...prev, current: 1 }));
-    fetchData(1, pagination.pageSize, searchText, sortBy, sortOrder, filterBranchId, value);
+    fetchData(
+      1,
+      pagination.pageSize,
+      searchText,
+      sortBy,
+      sortOrder,
+      filterBranchId,
+      value
+    );
   };
 
   const clearFilters = () => {
@@ -213,19 +242,21 @@ export default function StuPage() {
   // Import and Export handlers
   const handleImportData = () => {
     console.log("🚀 Import STU Data - Feature Development");
-    message.info("Import feature akan segera hadir. Lihat console untuk struktur data yang diharapkan.");
-    
+    message.info(
+      "Import feature akan segera hadir. Lihat console untuk struktur data yang diharapkan."
+    );
+
     const exampleData = [
       {
         "Machine Number": "YZF1501234567890",
         "Rangka Number": "MH3JKE12345678901",
-        "Quantity": 1,
-        "Date": "2024-01-15",
+        Quantity: 1,
+        Date: "2024-01-15",
         "Branch Code": "SMA-YMH-LBM",
         "Type Name": "XMAX TECH MAX",
-      }
+      },
     ];
-    
+
     console.group("📋 STU Data Import Structure");
     console.table(exampleData[0]);
     console.log("📊 Total Sample Records:", exampleData.length);
@@ -255,24 +286,32 @@ export default function StuPage() {
       key: "machineNumber",
       sorter: true,
       width: 180,
-      render: (machineNo: string | null) => 
+      render: (machineNo: string | null) =>
         machineNo ? (
           <Tooltip title={machineNo}>
-            <Text code className="text-xs">{machineNo}</Text>
+            <Text code className="text-xs">
+              {machineNo}
+            </Text>
           </Tooltip>
-        ) : "-",
+        ) : (
+          "-"
+        ),
     },
     {
       title: "Rangka Number",
       dataIndex: "rangkaNumber",
       key: "rangkaNumber",
       width: 180,
-      render: (rangkaNo: string | null) => 
+      render: (rangkaNo: string | null) =>
         rangkaNo ? (
           <Tooltip title={rangkaNo}>
-            <Text code className="text-xs">{rangkaNo}</Text>
+            <Text code className="text-xs">
+              {rangkaNo}
+            </Text>
           </Tooltip>
-        ) : "-",
+        ) : (
+          "-"
+        ),
     },
     {
       title: "Quantity",
@@ -281,9 +320,7 @@ export default function StuPage() {
       sorter: true,
       width: 100,
       align: "center" as const,
-      render: (quantity: number | null) => (
-        <Text strong>{quantity || 0}</Text>
-      ),
+      render: (quantity: number | null) => <Text strong>{quantity || 0}</Text>,
     },
     {
       title: "Date",
@@ -291,7 +328,7 @@ export default function StuPage() {
       key: "date",
       sorter: true,
       width: 120,
-      render: (date: string | null) => 
+      render: (date: string | null) =>
         date ? <Text>{dayjs(date).format("DD/MM/YYYY")}</Text> : "-",
     },
     {
@@ -311,9 +348,7 @@ export default function StuPage() {
     {
       title: "Type",
       key: "type",
-      render: (record: StuData) => (
-        <Tag color="blue">{record.type.name}</Tag>
-      ),
+      render: (record: StuData) => <Tag color="blue">{record.type.name}</Tag>,
     },
     {
       title: "Series",
@@ -349,7 +384,7 @@ export default function StuPage() {
                 <div className="text-sm text-gray-600">Total Records</div>
               </div>
             </Card>
-            
+
             <Card>
               <div className="text-center">
                 <div className="text-2xl font-bold text-green-600">
@@ -358,11 +393,11 @@ export default function StuPage() {
                 <div className="text-sm text-gray-600">Total Quantity</div>
               </div>
             </Card>
-            
+
             <Card>
               <div className="text-center">
                 <div className="text-2xl font-bold text-purple-600">
-                  {new Set(data.map(item => item.branchId)).size}
+                  {new Set(data.map((item) => item.branchId)).size}
                 </div>
                 <div className="text-sm text-gray-600">Active Branches</div>
               </div>
@@ -421,8 +456,8 @@ export default function StuPage() {
                   Import Data (Console)
                 </Button>
                 <Tooltip title="Export current data to console">
-                  <Button 
-                    onClick={handleExportData} 
+                  <Button
+                    onClick={handleExportData}
                     icon={<FileArrowDown size={16} />}
                     disabled={data.length === 0}
                   >

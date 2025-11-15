@@ -82,7 +82,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     {
       key: "stu",
       icon: <List size={18} />,
-      label: "STU Data", 
+      label: "STU Data",
       onClick: () => router.push("/admin/stu"),
     },
     {
