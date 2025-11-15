@@ -15,6 +15,20 @@
       "when": 1762265909847,
       "tag": "0001_outstanding_mephistopheles",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1763196931950,
+      "tag": "0002_clean_speedball",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1763199231546,
+      "tag": "0003_overjoyed_miracleman",
+      "breakpoints": true
     }
   ]
 }
