@@ -36,6 +36,7 @@ interface ImportDataProps {
   templateColumns?: string[];
   maxFileSize?: number; // in MB
   worksheetName?: string;
+  loadingConfirm?: boolean;
 }
 
 interface ParsedData {
@@ -53,6 +54,7 @@ export default function ImportData({
   acceptedFormats = [".xlsx", ".xls", ".csv"],
   templateColumns = [],
   maxFileSize = 10,
+  loadingConfirm = false,
 }: ImportDataProps) {
   const [loading, setLoading] = useState(false);
   const [workbook, setWorkbook] = useState<XLSX.WorkBook | null>(null);
@@ -216,6 +218,7 @@ export default function ImportData({
               type="primary"
               onClick={handleConfirmImport}
               icon={<CheckCircle size={16} />}
+              loading={loadingConfirm}
             >
               Konfirmasi Import ({parsedData?.totalRecords} records)
             </Button>
@@ -260,7 +263,7 @@ export default function ImportData({
               showUploadList={false}
               multiple={false}
             >
-              <div className="py-8">
+              <div className="py-8 mt-4">
                 <div className="flex justify-center mb-4">
                   <CloudArrowUp size={48} className="text-blue-500" />
                 </div>

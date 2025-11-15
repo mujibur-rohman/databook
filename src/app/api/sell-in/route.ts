@@ -201,7 +201,7 @@ export async function POST(request: NextRequest) {
         const type = await db
           .select()
           .from(types)
-          .where(eq(types.name, item.typeName))
+          .where(ilike(types.name, item.typeName))
           .limit(1);
 
         if (type.length === 0) {

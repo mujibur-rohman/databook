@@ -56,6 +56,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       onClick: () => router.push("/admin/dashboard"),
     },
     {
+      key: "sell-in",
+      icon: <TrendUp size={18} />,
+      label: "Sell-In Data",
+      onClick: () => router.push("/admin/sell-in"),
+    },
+    {
       key: "master-data",
       icon: <Database size={18} />,
       label: "Master Data",
@@ -79,12 +85,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           onClick: () => router.push("/admin/master-data/series"),
         },
       ],
-    },
-    {
-      key: "sell-in",
-      icon: <TrendUp size={18} />,
-      label: "Sell-In Data",
-      onClick: () => router.push("/admin/sell-in"),
     },
   ];
 
