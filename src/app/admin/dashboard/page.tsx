@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, Typography, Select, DatePicker, Spin } from "antd";
+import { Card, Typography, Select, DatePicker, Spin, Table } from "antd";
 import AdminLayout from "@/components/layouts/AdminLayout";
 import dynamic from "next/dynamic";
 import { useDoPenjualanAnalytics } from "@/hooks/useDoPenjualanAnalytics";
 import { useDoPenjualanBarChart } from "@/hooks/useDoPenjualanBarChart";
+import { useSalesSource } from "@/hooks/useSalesSource";
 import { useBranches } from "@/hooks/useBranches";
 import { useTypes } from "@/hooks/useTypes";
 import { usePosList } from "@/hooks/usePosList";
@@ -14,6 +15,16 @@ import {
   useCashOrCreditList,
   useJabatanSalesForceList,
 } from "@/hooks/useCategoryLists";
+import {
+  useTypeDistribution,
+  usePosDistribution,
+  useSeriesDistribution,
+  useProductCategoryDistribution,
+  useSalesForceDistribution,
+  useKotaDistribution,
+  useKecamatanDistribution,
+  useTenorDistribution,
+} from "@/hooks/useDistributions";
 import dayjs, { Dayjs } from "dayjs";
 
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
@@ -50,40 +61,38 @@ export default function DashboardPage() {
     if (branches.length > 0 && filterBranchIds.length === 0) {
       setFilterBranchIds(branches.map((b) => b.id));
     }
-  }, [branches, filterBranchIds.length]);
-
-  useEffect(() => {
     if (types.length > 0 && filterTypeIds.length === 0) {
       setFilterTypeIds(types.map((t) => t.id));
     }
-  }, [types, filterTypeIds.length]);
-
-  useEffect(() => {
     if (posList.length > 0 && filterPos.length === 0) {
       setFilterPos(posList.map((p) => p.name));
     }
-  }, [posList, filterPos.length]);
-
-  useEffect(() => {
     if (productCategoryList.length > 0 && filterProductCategory.length === 0) {
       setFilterProductCategory(productCategoryList.map((c) => c.name));
     }
-  }, [productCategoryList, filterProductCategory.length]);
-
-  useEffect(() => {
     if (cashOrCreditList.length > 0 && filterCashOrCredit.length === 0) {
       setFilterCashOrCredit(cashOrCreditList.map((c) => c.name));
     }
-  }, [cashOrCreditList, filterCashOrCredit.length]);
-
-  useEffect(() => {
     if (
       jabatanSalesForceList.length > 0 &&
       filterJabatanSalesForce.length === 0
     ) {
       setFilterJabatanSalesForce(jabatanSalesForceList.map((j) => j.name));
     }
-  }, [jabatanSalesForceList, filterJabatanSalesForce.length]);
+  }, [
+    branches,
+    filterBranchIds.length,
+    types,
+    filterTypeIds.length,
+    posList,
+    filterPos.length,
+    productCategoryList,
+    filterProductCategory.length,
+    cashOrCreditList,
+    filterCashOrCredit.length,
+    jabatanSalesForceList,
+    filterJabatanSalesForce.length,
+  ]);
 
   // Fetch analytics data
   const { data: analyticsResponse, isLoading } = useDoPenjualanAnalytics({
@@ -113,6 +122,49 @@ export default function DashboardPage() {
   });
 
   const barChartData = barChartResponse?.data || [];
+
+  // Fetch sales source data
+  const { data: salesSourceResponse } = useSalesSource({
+    startDate: dateRange[0]?.format("YYYY-MM-DD"),
+    endDate: dateRange[1]?.format("YYYY-MM-DD"),
+    branchIds: filterBranchIds,
+    typeIds: filterTypeIds,
+    pos: filterPos,
+    productCategory: filterProductCategory,
+    cashOrCredit: filterCashOrCredit,
+    jabatanSalesForce: filterJabatanSalesForce,
+  });
+
+  const salesSourceData = salesSourceResponse?.data || [];
+
+  // Fetch distribution data
+  const distributionParams = {
+    startDate: dateRange[0]?.format("YYYY-MM-DD"),
+    endDate: dateRange[1]?.format("YYYY-MM-DD"),
+    branchIds: filterBranchIds,
+    typeIds: filterTypeIds,
+    pos: filterPos,
+    productCategory: filterProductCategory,
+    cashOrCredit: filterCashOrCredit,
+    jabatanSalesForce: filterJabatanSalesForce,
+  };
+
+  const { data: typeDist, isLoading: isLoadingType } =
+    useTypeDistribution(distributionParams);
+  const { data: posDist, isLoading: isLoadingPos } =
+    usePosDistribution(distributionParams);
+  const { data: seriesDist, isLoading: isLoadingSeries } =
+    useSeriesDistribution(distributionParams);
+  const { data: categoryDist, isLoading: isLoadingCategory } =
+    useProductCategoryDistribution(distributionParams);
+  const { data: salesForceDist, isLoading: isLoadingSalesForce } =
+    useSalesForceDistribution(distributionParams);
+  const { data: kotaDist, isLoading: isLoadingKota } =
+    useKotaDistribution(distributionParams);
+  const { data: kecamatanDist, isLoading: isLoadingKecamatan } =
+    useKecamatanDistribution(distributionParams);
+  const { data: tenorDist, isLoading: isLoadingTenor } =
+    useTenorDistribution(distributionParams);
 
   // Prepare chart data
   const chartOptions: ApexCharts.ApexOptions = {
@@ -415,7 +467,7 @@ export default function DashboardPage() {
               {/* POS */}
               <div>
                 <Text className="block mb-2" type="secondary">
-                  Point of Sale (POS)
+                  POS
                 </Text>
                 <Select
                   mode="multiple"
@@ -555,7 +607,7 @@ export default function DashboardPage() {
         </Card>
 
         {/* Bar Chart - DO Penjualan per Cabang */}
-        <Card>
+        <Card className="mb-6">
           {isLoading ? (
             <div className="flex justify-center items-center h-96">
               <Spin size="large" />
@@ -575,6 +627,113 @@ export default function DashboardPage() {
             </div>
           )}
         </Card>
+
+        {/* Distribution Tables Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[
+            {
+              title: "Sales Source",
+              subtitle: "Distribusi berdasarkan sumber penjualan",
+              data: salesSourceData.map((item) => ({
+                name: item.salesSource,
+                quantity: item.quantity,
+                percentage: item.percentage,
+              })),
+              loading: isLoading,
+            },
+            {
+              title: "Type",
+              subtitle: "Distribusi berdasarkan tipe unit",
+              data: typeDist?.data || [],
+              loading: isLoadingType,
+            },
+            {
+              title: "POS",
+              subtitle: "Distribusi berdasarkan Point of Sales",
+              data: posDist?.data || [],
+              loading: isLoadingPos,
+            },
+            {
+              title: "Series",
+              subtitle: "Distribusi berdasarkan series",
+              data: seriesDist?.data || [],
+              loading: isLoadingSeries,
+            },
+            {
+              title: "Product Category",
+              subtitle: "Distribusi berdasarkan kategori produk",
+              data: categoryDist?.data || [],
+              loading: isLoadingCategory,
+            },
+            {
+              title: "Sales Force",
+              subtitle: "Distribusi berdasarkan sales force",
+              data: salesForceDist?.data || [],
+              loading: isLoadingSalesForce,
+            },
+            {
+              title: "Kota",
+              subtitle: "Distribusi berdasarkan kota",
+              data: kotaDist?.data || [],
+              loading: isLoadingKota,
+            },
+            {
+              title: "Kecamatan",
+              subtitle: "Distribusi berdasarkan kecamatan",
+              data: kecamatanDist?.data || [],
+              loading: isLoadingKecamatan,
+            },
+            {
+              title: "Tenor",
+              subtitle: "Distribusi berdasarkan tenor",
+              data: tenorDist?.data || [],
+              loading: isLoadingTenor,
+            },
+          ].map((dist, index) => (
+            <Card key={index} className="h-full">
+              <div className="mb-4">
+                <Text strong className="block text-base">
+                  {dist.title}
+                </Text>
+                <Text type="secondary" className="text-sm">
+                  {dist.subtitle}
+                </Text>
+              </div>
+              <Table
+                dataSource={dist.data}
+                columns={[
+                  {
+                    title: "Name",
+                    dataIndex: "name",
+                    key: "name",
+                    render: (text) => <Text>{text || "-"}</Text>,
+                  },
+                  {
+                    title: "Qty",
+                    dataIndex: "quantity",
+                    key: "quantity",
+                    align: "right",
+                    render: (value) => (
+                      <Text>{value.toLocaleString("id-ID")}</Text>
+                    ),
+                  },
+                  {
+                    title: "Percent",
+                    dataIndex: "percentage",
+                    key: "percentage",
+                    align: "right",
+                    render: (value) => <Text strong>{value}%</Text>,
+                  },
+                ]}
+                pagination={false}
+                size="small"
+                loading={dist.loading}
+                rowKey="name"
+                scroll={{ y: 300 }}
+              />
+            </Card>
+          ))}
+        </div>
       </div>
     </AdminLayout>
   );
