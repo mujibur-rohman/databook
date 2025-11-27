@@ -21,6 +21,7 @@
     "@types/js-cookie": "^3.0.6",
     "@types/pg": "^8.15.5",
     "antd": "^5.27.5",
+    "apexcharts": "^5.3.6",
     "axios": "^1.12.2",
     "bcryptjs": "^3.0.2",
     "crypto-js": "^4.2.0",
@@ -33,6 +34,7 @@
     "nextjs-toploader": "^3.9.17",
     "pg": "^8.16.3",
     "react": "^18",
+    "react-apexcharts": "^1.8.0",
     "react-dom": "^18",
     "sonner": "^2.0.7",
     "xlsx": "^0.18.5"

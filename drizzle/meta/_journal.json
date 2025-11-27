@@ -29,6 +29,20 @@
       "when": 1763199231546,
       "tag": "0003_overjoyed_miracleman",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1764255212205,
+      "tag": "0004_soft_mole_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1764257575794,
+      "tag": "0005_wealthy_franklin_richards",
+      "breakpoints": true
     }
   ]
 }

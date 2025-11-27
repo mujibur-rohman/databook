@@ -14,15 +14,15 @@ import {
   message,
   Tooltip,
   Badge,
+  Spin,
+  Modal,
 } from "antd";
-import {
-  Archive,
-  MagnifyingGlass,
-  FunnelSimple,
-  FileArrowDown,
-} from "@phosphor-icons/react";
+import { Archive, MagnifyingGlass, FunnelSimple } from "@phosphor-icons/react";
 import AdminLayout from "@/components/layouts/AdminLayout";
 import dayjs from "dayjs";
+import ImportData from "@/components/ImportData";
+import { toast } from "sonner";
+import { excelDateToJSDate } from "@/lib/date";
 
 const { Title, Text } = Typography;
 const { Search } = Input;
@@ -42,6 +42,47 @@ interface Type {
 interface Series {
   id: number;
   name: string;
+}
+
+interface CsvDataRow {
+  Cabang: string;
+  "Kode Cabang": string;
+  Kategori: string;
+  "Kode Unit": string;
+  Deskripsi: string;
+  Warna: string;
+  Lokasi: string;
+  "Tanggal GRN": number;
+  Mesin: string;
+  Rangka: string;
+  "Tahun Rakit": number;
+  Jumlah: string;
+  "Posisi Stock": string;
+  Status: string;
+  "Umur Stock / (hari)": string;
+  "Umur Mutasi / (hari)": string;
+  "Source Doc": string;
+  "Source Branch": string;
+  Tanggal: number;
+  Series: string;
+}
+
+interface ImportApiResponse {
+  message: string;
+  successCount: number;
+  errorCount: number;
+  results: Array<{
+    index: number;
+    data: ShoData;
+    success: boolean;
+  }>;
+  errors: ImportError[];
+}
+
+interface ImportError {
+  index: number;
+  error: string;
+  data?: CsvDataRow;
 }
 
 interface ShoData {
@@ -96,6 +137,16 @@ export default function ShoPage() {
   const [filterBranchId, setFilterBranchId] = useState<string>("");
   const [filterTypeId, setFilterTypeId] = useState<string>("");
   const [filterStatus, setFilterStatus] = useState<string>("");
+  const [importResult, setImportResult] = useState<{
+    successCount: number;
+    errorCount: number;
+    errors: ImportError[];
+    successfulIds?: number[];
+    rollbackMessage?: string;
+  } | null>(null);
+  const [importLoading, setImportLoading] = useState(false);
+  const [undoLoading, setUndoLoading] = useState(false);
+  const [openImport, setOpenImport] = useState(false);
 
   // Fetch data
   const fetchData = async (
@@ -274,47 +325,182 @@ export default function ShoPage() {
     fetchData(1, pagination.pageSize, "", sortBy, sortOrder, "", "", "");
   };
 
-  // Import and Export handlers
-  const handleImportData = () => {
-    console.log("🚀 Import SHO Data - Feature Development");
-    message.info(
-      "Import feature akan segera hadir. Lihat console untuk struktur data yang diharapkan."
-    );
-
-    const exampleData = [
-      {
-        Category: "Motor",
-        Color: "Red",
-        Location: "Gudang A",
-        Quantity: 5,
-        "Date GRN": "2024-01-15",
-        "Rangka Number": "MH3JKE12345678901",
-        Year: "2024",
-        "Position Stock": "Available",
-        Status: "Active",
-        Count: 5,
-        "Umur Stock": 30,
-        "Umur Mutasi": 15,
-        "Source Doc": "GRN001",
-        "Source Branch": "Main Store",
-        Date: "2024-01-15",
-        "Branch Code": "SMA-YMH-LBM",
-        "Type Name": "XMAX TECH MAX",
-      },
-    ];
-
-    console.group("📋 SHO Data Import Structure");
-    console.table(exampleData[0]);
-    console.log("📊 Total Sample Records:", exampleData.length);
-    console.log("🔗 API Endpoint: POST /api/sho (coming soon)");
-    console.groupEnd();
+  const transformCsvDataToApiFormat = (csvData: CsvDataRow[]) => {
+    return csvData.map((row, index) => {
+      try {
+        return {
+          category: row.Kategori || "",
+          color: row.Warna || "",
+          location: row.Lokasi || "",
+          quantity: parseInt(row.Jumlah?.toString()) || 0,
+          dateGrn: excelDateToJSDate(row["Tanggal GRN"]),
+          rangkaNumber: row.Rangka || "",
+          year: row["Tahun Rakit"]?.toString() || "",
+          positionStock: row["Posisi Stock"] || "",
+          status: row.Status || "",
+          count: null,
+          umurStock: parseInt(row["Umur Stock / (hari)"]?.toString()) || null,
+          umurMutasi: parseInt(row["Umur Mutasi / (hari)"]?.toString()) || null,
+          sourceDoc: row["Source Doc"] || "",
+          sourceBranch: row["Source Branch"] || "",
+          date: excelDateToJSDate(row.Tanggal),
+          branchCode: row["Kode Cabang"] || "",
+          typeName: row["Kode Unit"] || "",
+          originalRowIndex: index,
+        };
+      } catch (error) {
+        console.error(`Error transforming row ${index}:`, error);
+        return {
+          branchCode: "",
+          typeName: "",
+          originalRowIndex: index,
+        };
+      }
+    });
   };
 
-  const handleExportData = () => {
-    console.log("📤 Export SHO Data");
-    console.table(data.slice(0, 10));
-    console.log(`📊 Total Records: ${data.length}`);
-    message.success(`Export ${data.length} records to console`);
+  // Handle rollback/undo import with confirmation
+  const handleRollbackImport = async () => {
+    if (
+      !importResult?.successfulIds ||
+      importResult.successfulIds.length === 0
+    ) {
+      toast.error("Tidak ada data yang bisa di-rollback");
+      return;
+    }
+
+    Modal.confirm({
+      title: "Konfirmasi Rollback",
+      content: (
+        <div>
+          <p>
+            Apakah Anda yakin ingin menghapus{" "}
+            <strong>{importResult.successCount} data</strong> yang sudah
+            berhasil diimport?
+          </p>
+          <p className="text-red-600 text-sm mt-2">
+            ⚠️ Tindakan ini tidak dapat dibatalkan!
+          </p>
+        </div>
+      ),
+      okText: "Ya, Rollback",
+      cancelText: "Batal",
+      okType: "danger",
+      onOk: async () => {
+        setUndoLoading(true);
+        try {
+          const response = await fetch("/api/sho/batch-delete", {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include",
+            body: JSON.stringify({ ids: importResult.successfulIds }),
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            toast.success(
+              `Berhasil rollback ${result.deletedCount} data yang telah diimport`
+            );
+
+            setImportResult((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    successCount: 0,
+                    successfulIds: [],
+                    rollbackMessage: `${
+                      result.deletedCount
+                    } data berhasil di-rollback pada ${new Date().toLocaleString(
+                      "id-ID"
+                    )}`,
+                  }
+                : null
+            );
+
+            fetchData();
+          } else {
+            const error = await response.json();
+            toast.error(`Gagal rollback data: ${error.error}`);
+          }
+        } catch (error) {
+          console.error("Rollback error:", error);
+          toast.error("Terjadi kesalahan saat rollback data");
+        } finally {
+          setUndoLoading(false);
+        }
+      },
+    });
+  };
+
+  const handleImportConfirm = async (csvData: CsvDataRow[]) => {
+    setImportLoading(true);
+    setImportResult(null);
+    try {
+      const transformedData = transformCsvDataToApiFormat(csvData);
+
+      const response = await fetch("/api/sho", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(transformedData),
+      });
+
+      const result = await response.json();
+
+      if (response.ok || response.status === 207) {
+        // Extract successful IDs for rollback capability
+        const successfulIds = result.results
+          ? result.results
+              .filter((r: ImportApiResponse["results"][0]) => r.success)
+              .map((r: ImportApiResponse["results"][0]) => r.data.id)
+          : [];
+
+        setImportResult({
+          successCount: result.successCount || 0,
+          errorCount: result.errorCount || 0,
+          errors: result.errors || [],
+          successfulIds: successfulIds,
+        });
+
+        if (result.successCount > 0) {
+          toast.success(
+            `Berhasil mengimport ${result.successCount} data dari ${csvData.length} total data`
+          );
+          // Refresh data table
+          fetchData();
+        }
+
+        if (result.errorCount > 0) {
+          toast.warning(
+            `${result.errorCount} data gagal diimport. Silakan lihat detail error di bawah.`
+          );
+        }
+      } else {
+        toast.error("Gagal mengimport data");
+        setImportResult({
+          successCount: 0,
+          errorCount: csvData.length,
+          errors: [{ index: 0, error: result.error || "Unknown error" }],
+          successfulIds: [],
+        });
+      }
+    } catch (error) {
+      console.error("Import error:", error);
+      toast.error("Terjadi kesalahan saat mengimport data");
+      setImportResult({
+        successCount: 0,
+        errorCount: csvData.length,
+        errors: [{ index: 0, error: "Network or server error" }],
+        successfulIds: [],
+      });
+    } finally {
+      setImportLoading(false);
+      setOpenImport(false);
+    }
   };
 
   // Helper function for stock age color
@@ -496,57 +682,145 @@ export default function ShoPage() {
           </div>
         </div>
 
-        {/* Summary Statistics */}
-        {data.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <Card>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">
-                  {data.length}
-                </div>
-                <div className="text-sm text-gray-600">Total Records</div>
+   
+        {/* Import Result Feedback */}
+        {importResult && (
+          <Card className="mb-4">
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <Title level={4}>Hasil Import Data</Title>
+                {importResult.rollbackMessage && (
+                  <div className="text-sm text-blue-600 bg-blue-50 px-3 py-1 rounded-lg border border-blue-200">
+                    ✅ {importResult.rollbackMessage}
+                  </div>
+                )}
               </div>
-            </Card>
-
-            <Card>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">
-                  {data.reduce((sum, item) => sum + (item.quantity || 0), 0)}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div
+                  className={`p-4 rounded-lg border ${
+                    importResult.successCount === 0 &&
+                    importResult.successfulIds &&
+                    importResult.successfulIds.length === 0
+                      ? "bg-gray-50 border-gray-200"
+                      : "bg-green-50 border-green-200"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={`w-3 h-3 rounded-full ${
+                        importResult.successCount === 0 &&
+                        importResult.successfulIds &&
+                        importResult.successfulIds.length === 0
+                          ? "bg-gray-400"
+                          : "bg-green-500"
+                      }`}
+                    ></div>
+                    <Text
+                      strong
+                      className={
+                        importResult.successCount === 0 &&
+                        importResult.successfulIds &&
+                        importResult.successfulIds.length === 0
+                          ? "text-gray-600"
+                          : "text-green-700"
+                      }
+                    >
+                      Data Berhasil
+                      {importResult.successCount === 0 &&
+                        importResult.successfulIds &&
+                        importResult.successfulIds.length === 0 &&
+                        " (Rolled Back)"}
+                    </Text>
+                  </div>
+                  <div
+                    className={`text-2xl font-bold mt-1 ${
+                      importResult.successCount === 0 &&
+                      importResult.successfulIds &&
+                      importResult.successfulIds.length === 0
+                        ? "text-gray-600"
+                        : "text-green-700"
+                    }`}
+                  >
+                    {importResult.successCount}
+                  </div>
                 </div>
-                <div className="text-sm text-gray-600">Total Stock</div>
-              </div>
-            </Card>
-
-            <Card>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-orange-600">
-                  {Math.round(
-                    data.reduce((sum, item) => sum + (item.umurStock || 0), 0) /
-                      data.length
-                  ) || 0}
+                <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                    <Text strong className="text-red-700">
+                      Data Gagal
+                    </Text>
+                  </div>
+                  <div className="text-2xl font-bold text-red-700 mt-1">
+                    {importResult.errorCount}
+                  </div>
                 </div>
-                <div className="text-sm text-gray-600">Avg Stock Age</div>
-              </div>
-            </Card>
-
-            <Card>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-red-600">
-                  {data.filter((item) => (item.umurStock || 0) > 90).length}
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                    <Text strong className="text-blue-700">
+                      Total Diproses
+                    </Text>
+                  </div>
+                  <div className="text-2xl font-bold text-blue-700 mt-1">
+                    {importResult.successCount + importResult.errorCount}
+                  </div>
                 </div>
-                <div className="text-sm text-gray-600">Old Stock (90+)</div>
               </div>
-            </Card>
-
-            <Card>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-purple-600">
-                  {data.filter((item) => item.status === "Active").length}
+              {importResult.errors.length > 0 && (
+                <div>
+                  <div className="flex justify-between items-center mb-3">
+                    <Title level={5} className="text-red-600 mb-0">
+                      Detail Data yang Gagal:
+                    </Title>
+                    {importResult.successCount > 0 && (
+                      <div className="text-sm text-amber-600 bg-amber-50 px-3 py-1 rounded-lg border border-amber-200">
+                        ⚠️ Ada {importResult.successCount} data yang sudah
+                        berhasil diimport
+                      </div>
+                    )}
+                  </div>
+                  <div className="max-h-60 overflow-y-auto space-y-2">
+                    {importResult.errors.map((error, index) => (
+                      <div
+                        key={index}
+                        className="p-3 bg-red-50 border border-red-200 rounded-lg"
+                      >
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <Text strong className="text-red-700">
+                              Baris {error.index + 1}:
+                            </Text>
+                            <Text className="text-red-600 ml-2">
+                              {error.error}
+                            </Text>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="text-sm text-gray-600">Active Stock</div>
+              )}
+              <div className="flex justify-end gap-2">
+                {importResult.errorCount > 0 &&
+                  importResult.successCount > 0 &&
+                  importResult.successfulIds &&
+                  importResult.successfulIds.length > 0 && (
+                    <Button
+                      onClick={handleRollbackImport}
+                      loading={undoLoading}
+                      danger
+                      type="primary"
+                    >
+                      🔄 Undo & Rollback ({importResult.successCount} data)
+                    </Button>
+                  )}
+                <Button onClick={() => setImportResult(null)} type="default">
+                  Tutup Laporan
+                </Button>
               </div>
-            </Card>
-          </div>
+            </div>
+          </Card>
         )}
 
         {/* Filters and Search */}
@@ -607,18 +881,54 @@ export default function ShoPage() {
               </Select>
 
               <Space>
-                <Button onClick={handleImportData} type="primary">
-                  Import Data (Console)
+                <Button
+                  onClick={() => {
+                    setImportResult(null); // Reset previous results
+                    setOpenImport(true);
+                  }}
+                >
+                  Import Data
                 </Button>
-                <Tooltip title="Export current data to console">
-                  <Button
-                    onClick={handleExportData}
-                    icon={<FileArrowDown size={16} />}
-                    disabled={data.length === 0}
-                  >
-                    Export ({data.length})
-                  </Button>
-                </Tooltip>
+                <ImportData
+                  maxFileSize={30}
+                  onCancel={() => setOpenImport(false)}
+                  visible={openImport}
+                  onConfirmImport={handleImportConfirm}
+                  title="Import Supply Data"
+                  loadingConfirm={importLoading}
+                  templateColumns={[
+                    "Cabang",
+                    "Kode Cabang",
+                    "Kategori",
+                    "Kode Unit",
+                    "Deskripsi",
+                    "Warna",
+                    "Lokasi",
+                    "Tanggal GRN",
+                    "Mesin",
+                    "Rangka",
+                    "Tahun Rakit",
+                    "Jumlah",
+                    "Posisi Stock",
+                    "Status",
+                    "Umur Stock / (hari)",
+                    "Umur Mutasi / (hari)",
+                    "Source Doc",
+                    "Source Branch",
+                    "Tanggal",
+                    "Series",
+                  ]}
+                />
+                {importLoading && (
+                  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white p-6 rounded-lg">
+                      <Spin size="large" />
+                      <div className="mt-4">
+                        <Text>Sedang memproses import data...</Text>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </Space>
             </div>
 

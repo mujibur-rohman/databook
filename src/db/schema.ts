@@ -177,6 +177,37 @@ export const sho = pgTable("sho", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+// SPK table
+export const spk = pgTable("spk", {
+  id: serial("id").primaryKey(),
+  spkNumber: varchar("spk_number", { length: 255 }),
+  date: timestamp("date"),
+  customerName: varchar("customer_name", { length: 255 }),
+  stnkName: varchar("stnk_name", { length: 255 }),
+  bbn: varchar("bbn", { length: 255 }),
+  salesName: varchar("sales_name", { length: 255 }),
+  salesTeam: varchar("sales_team", { length: 255 }),
+  fincoName: varchar("finco_name", { length: 255 }),
+  salesSource: varchar("sales_source", { length: 255 }),
+  registerNumber: varchar("register_number", { length: 255 }),
+  color: varchar("color", { length: 255 }),
+  quantity: integer("quantity"),
+  dpTotal: varchar("dp_total", { length: 255 }),
+  discount: varchar("discount", { length: 255 }),
+  credit: varchar("credit", { length: 255 }),
+  tenor: varchar("tenor", { length: 255 }),
+  status: varchar("status", { length: 255 }),
+  cancelReason: varchar("cancel_reason", { length: 255 }),
+  branchId: integer("branch_id")
+    .notNull()
+    .references(() => branches.id, { onDelete: "cascade" }),
+  typeId: integer("type_id")
+    .notNull()
+    .references(() => types.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 // Types for TypeScript
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;

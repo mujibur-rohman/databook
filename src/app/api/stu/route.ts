@@ -136,3 +136,107 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+// POST - Create multiple STU records
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+
+    if (!Array.isArray(body) || body.length === 0) {
+      return NextResponse.json(
+        { error: "Data harus berupa array dan tidak boleh kosong" },
+        { status: 400 }
+      );
+    }
+
+    const results = [];
+    const errors = [];
+
+    for (let i = 0; i < body.length; i++) {
+      const item = body[i];
+
+      try {
+        // Validate required fields
+        if (!item.branchCode || !item.typeName) {
+          errors.push({
+            index: i,
+            error: "Branch Code dan Type Name wajib diisi",
+          });
+          continue;
+        }
+
+        // Find branch by code
+        const branch = await db
+          .select()
+          .from(branches)
+          .where(eq(branches.code, item.branchCode))
+          .limit(1);
+
+        if (branch.length === 0) {
+          errors.push({
+            index: i,
+            error: `Branch dengan kode ${item.branchCode} tidak ditemukan`,
+          });
+          continue;
+        }
+
+        // Find type by name
+        const type = await db
+          .select()
+          .from(types)
+          .where(ilike(types.name, item.typeName))
+          .limit(1);
+
+        if (type.length === 0) {
+          errors.push({
+            index: i,
+            error: `Type dengan nama ${item.typeName} tidak ditemukan`,
+          });
+          continue;
+        }
+
+        // Insert STU record
+        const newRecord = await db
+          .insert(stu)
+          .values({
+            machineNumber: item.machineNumber || null,
+            rangkaNumber: item.rangkaNumber || null,
+            quantity: item.quantity || 0,
+            date: item.date ? new Date(item.date) : null,
+            branchId: branch[0].id,
+            typeId: type[0].id,
+          })
+          .returning();
+
+        results.push({
+          index: i,
+          data: newRecord[0],
+          success: true,
+        });
+      } catch (itemError) {
+        console.error(`Error processing item ${i}:`, itemError);
+        errors.push({
+          index: i,
+          error: "Terjadi kesalahan saat memproses data",
+        });
+      }
+    }
+
+    const response = {
+      message: `Berhasil memproses ${results.length} dari ${body.length} data`,
+      successCount: results.length,
+      errorCount: errors.length,
+      results,
+      errors,
+    };
+
+    const statusCode = errors.length > 0 ? 207 : 201;
+    return NextResponse.json(response, { status: statusCode });
+  } catch (error) {
+    console.error("STU POST error:", error);
+    return NextResponse.json(
+      { error: "Terjadi kesalahan saat menyimpan data" },
+      { status: 500 }
+    );
+  }
+}

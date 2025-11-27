@@ -1,0 +1,1 @@
+ALTER TABLE "spk" ADD COLUMN "status" varchar(255);

@@ -12,7 +12,6 @@ import {
   Select,
   Tag,
   message,
-  Tooltip,
   Spin,
   Modal,
 } from "antd";
@@ -21,7 +20,6 @@ import AdminLayout from "@/components/layouts/AdminLayout";
 import dayjs from "dayjs";
 import ImportData from "@/components/ImportData";
 import { toast } from "sonner";
-import { usePosList } from "@/hooks/usePosList";
 import { excelDateToJSDate } from "@/lib/date";
 
 const { Title, Text } = Typography;
@@ -31,79 +29,6 @@ interface Branch {
   id: number;
   name: string;
   code: string;
-}
-
-interface CsvDataRow {
-  No: number;
-  "Branch Status": string;
-  "Branch Code": string;
-  "Branch Name": string;
-  "SO Number": string;
-  "SO Ref": string;
-  "SO Date": number;
-  "SO State": string;
-  "Cash / Credit": string;
-  TOP: string;
-  "Customer Code": string;
-  "Customer Name": string;
-  KTP: string;
-  Alamat: string;
-  Kota: string;
-  Kecamatan: string;
-  "Tgl. Lahir": number;
-  "No. HP": number;
-  Pos: string;
-  "Product Type": string;
-  "Product Description": string;
-  "Product Colour": string;
-  Qty: number;
-  "Product Tahun": number;
-  "Engine Number": string;
-  "Chassis Number": string;
-  "Harga Off (+PPN)": string;
-  "Diskon Reguler": string;
-  "Diskon Program External": string;
-  "Diskon Program Internal": string;
-  "Total Diskon Program": string;
-  "Total Diskon Invoice": string;
-  "Harga Jual Bersih (+PPN)": string;
-  DPP: string;
-  PPN: string;
-  "Titipan BBN": string;
-  "Biaya Retur": string;
-  "Total Piutang Penjualan": string;
-  "Piutang Uang Muka": string;
-  "Piutang Pelunasan": string;
-  "Nama Channel": string;
-  "Nama Mediator": string;
-  "Jumlah Mediator": string;
-  "Status PKP Customer": string;
-  "Nomor Faktur Pajak": string;
-  "Kategori Produk-1": string;
-  Series: string;
-  "Sales Coord Name": string;
-  Salesforce: string;
-  "Jabatan Salesforce": string;
-  "Register Activity": string;
-  "Main Dealer": string;
-  "Insentif Finco": string;
-  "PS AHM": string;
-  "PS MD": string;
-  "PS Finco": string;
-  "PS External Total": string;
-  "Diskon Beban Dealer + Mediator": string;
-  HPP: string;
-  "GP (DPP - HPP)": string;
-  "GP + Klaim": string;
-  "HPP BBN": string;
-  "GP BBN": string;
-  "Total GP": "496,136.00";
-  "Selisih Diskon Program": string;
-  "Beban Dealer Barang Bonus": string;
-  "Sales Source": "Media Sosial";
-  "Source Document": string;
-  "JP PO": string;
-  Tenor: string;
 }
 
 interface Type {
@@ -117,36 +42,52 @@ interface Series {
   name: string;
 }
 
-interface DoPenjualanData {
+interface CsvDataRow {
+  "Kode Cabang": string;
+  "Nama Cabang": string;
+  "No. SPK": string;
+  Tanggal: number;
+  "Nama Customer": string;
+  "Nama STNK": string;
+  BBN: string;
+  "Nama Salesman": string;
+  "Sales Team": string;
+  "Nama Finco": string;
+  "Sales Source": string;
+  "No. Register SPK": string;
+  "Kode Produk": string;
+  Warna: string;
+  QTY: string;
+  "DP Total": string;
+  "Diskon Potongan Pelanggan": string;
+  Cicilan: string;
+  Tenor: string;
+  Status: string;
+  "Alasan Cancel": string;
+  Type: string;
+  Series: string;
+}
+
+interface SpkData {
   id: number;
-  soNumber: string | null;
-  soDate: string | null;
-  soState: string | null;
-  cashOrCredit: string | null;
-  top: string | null;
-  customerCode: string | null;
+  spkNumber: string | null;
+  date: string | null;
   customerName: string | null;
-  ktp: string | null;
-  alamat: string | null;
-  kota: string | null;
-  kecamatan: string | null;
-  birthday: string | null;
-  phoneNumber: string | null;
-  pos: string | null;
+  stnkName: string | null;
+  bbn: string | null;
+  salesName: string | null;
+  salesTeam: string | null;
+  fincoName: string | null;
+  salesSource: string | null;
+  registerNumber: string | null;
   color: string | null;
   quantity: number | null;
-  year: string | null;
-  engineNumber: string | null;
-  chassisNumber: string | null;
-  productCategory: string | null;
-  salesPic: string | null;
-  salesForce: string | null;
-  jabatanSalesForce: string | null;
-  mainDealer: string | null;
-  salesSource: string | null;
-  sourceDocument: string | null;
-  jpPo: number | null;
-  tenor: number | null;
+  dpTotal: string | null;
+  discount: string | null;
+  credit: string | null;
+  tenor: string | null;
+  status: string | null;
+  cancelReason: string | null;
   branchId: number;
   typeId: number;
   createdAt: string;
@@ -162,7 +103,7 @@ interface ImportApiResponse {
   errorCount: number;
   results: Array<{
     index: number;
-    data: DoPenjualanData;
+    data: SpkData;
     success: boolean;
   }>;
   errors: ImportError[];
@@ -175,7 +116,7 @@ interface ImportError {
 }
 
 interface ApiResponse {
-  data: DoPenjualanData[];
+  data: SpkData[];
   pagination: {
     page: number;
     limit: number;
@@ -184,9 +125,9 @@ interface ApiResponse {
   };
 }
 
-export default function DoPenjualanPage() {
+export default function SpkPage() {
   const [loading, setLoading] = useState(false);
-  const [data, setData] = useState<DoPenjualanData[]>([]);
+  const [data, setData] = useState<SpkData[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [types, setTypes] = useState<Type[]>([]);
   const [pagination, setPagination] = useState({
@@ -199,8 +140,7 @@ export default function DoPenjualanPage() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [filterBranchId, setFilterBranchId] = useState<string>("");
   const [filterTypeId, setFilterTypeId] = useState<string>("");
-  const [filterCashOrCredit, setFilterCashOrCredit] = useState<string>("");
-  const [filterPos, setFilterPos] = useState<string[]>([]);
+  const [filterStatus, setFilterStatus] = useState<string>("");
   const [importResult, setImportResult] = useState<{
     successCount: number;
     errorCount: number;
@@ -212,10 +152,7 @@ export default function DoPenjualanPage() {
   const [undoLoading, setUndoLoading] = useState(false);
   const [openImport, setOpenImport] = useState(false);
 
-  // Fetch POS list
-  const { data: posList = [] } = usePosList();
-
-  // Fetch data
+  // Fetch SPK data
   const fetchData = async (
     page = pagination.current,
     limit = pagination.pageSize,
@@ -224,8 +161,7 @@ export default function DoPenjualanPage() {
     order = sortOrder,
     branchId = filterBranchId,
     typeId = filterTypeId,
-    cashOrCredit = filterCashOrCredit,
-    pos = filterPos
+    status = filterStatus
   ) => {
     setLoading(true);
     try {
@@ -239,10 +175,9 @@ export default function DoPenjualanPage() {
 
       if (branchId) params.append("branchId", branchId);
       if (typeId) params.append("typeId", typeId);
-      if (cashOrCredit) params.append("cashOrCredit", cashOrCredit);
-      if (pos && pos.length > 0) params.append("pos", pos.join(","));
+      if (status) params.append("status", status);
 
-      const response = await fetch(`/api/do-penjualan?${params}`, {
+      const response = await fetch(`/api/spk?${params}`, {
         credentials: "include",
       });
 
@@ -255,7 +190,7 @@ export default function DoPenjualanPage() {
           total: result.pagination.total,
         }));
       } else {
-        message.error("Gagal mengambil data DO Penjualan");
+        message.error("Gagal mengambil data SPK");
       }
     } catch {
       message.error("Terjadi kesalahan saat mengambil data");
@@ -321,8 +256,7 @@ export default function DoPenjualanPage() {
       newSortOrder,
       filterBranchId,
       filterTypeId,
-      filterCashOrCredit,
-      filterPos
+      filterStatus
     );
   };
 
@@ -337,8 +271,7 @@ export default function DoPenjualanPage() {
       sortOrder,
       filterBranchId,
       filterTypeId,
-      filterCashOrCredit,
-      filterPos
+      filterStatus
     );
   };
 
@@ -353,8 +286,7 @@ export default function DoPenjualanPage() {
       sortOrder,
       value,
       filterTypeId,
-      filterCashOrCredit,
-      filterPos
+      filterStatus
     );
   };
 
@@ -369,13 +301,12 @@ export default function DoPenjualanPage() {
       sortOrder,
       filterBranchId,
       value,
-      filterCashOrCredit,
-      filterPos
+      filterStatus
     );
   };
 
-  const handleCashOrCreditFilter = (value: string) => {
-    setFilterCashOrCredit(value);
+  const handleStatusFilter = (value: string) => {
+    setFilterStatus(value);
     setPagination((prev) => ({ ...prev, current: 1 }));
     fetchData(
       1,
@@ -385,23 +316,6 @@ export default function DoPenjualanPage() {
       sortOrder,
       filterBranchId,
       filterTypeId,
-      value,
-      filterPos
-    );
-  };
-
-  const handlePosFilter = (value: string[]) => {
-    setFilterPos(value);
-    setPagination((prev) => ({ ...prev, current: 1 }));
-    fetchData(
-      1,
-      pagination.pageSize,
-      searchText,
-      sortBy,
-      sortOrder,
-      filterBranchId,
-      filterTypeId,
-      filterCashOrCredit,
       value
     );
   };
@@ -410,46 +324,35 @@ export default function DoPenjualanPage() {
     setSearchText("");
     setFilterBranchId("");
     setFilterTypeId("");
-    setFilterCashOrCredit("");
-    setFilterPos([]);
+    setFilterStatus("");
     setPagination((prev) => ({ ...prev, current: 1 }));
-    fetchData(1, pagination.pageSize, "", sortBy, sortOrder, "", "", "", []);
+    fetchData(1, pagination.pageSize, "", sortBy, sortOrder, "", "", "");
   };
 
   const transformCsvDataToApiFormat = (csvData: CsvDataRow[]) => {
     return csvData.map((row, index) => {
       try {
         return {
-          soNumber: row["SO Number"] || "",
-          soDate: excelDateToJSDate(row["SO Date"]),
-          soState: row["SO State"] || "",
-          cashOrCredit: row["Cash / Credit"] || "",
-          top: row.TOP || "",
-          customerCode: row["Customer Code"] || "",
-          customerName: row["Customer Name"] || "",
-          ktp: row.KTP || "",
-          alamat: row.Alamat || "",
-          kota: row.Kota || "",
-          kecamatan: row.Kecamatan || "",
-          birthday: excelDateToJSDate(row["Tgl. Lahir"]),
-          phoneNumber: row["No. HP"]?.toString() || "",
-          pos: row.Pos || "",
-          color: row["Product Colour"] || "",
-          quantity: parseInt(row.Qty?.toString()) || 0,
-          year: row["Product Tahun"]?.toString() || "",
-          engineNumber: row["Engine Number"] || "",
-          chassisNumber: row["Chassis Number"] || "",
-          productCategory: row["Kategori Produk-1"] || "",
-          salesPic: row["Sales Coord Name"] || "",
-          salesForce: row.Salesforce || "",
-          jabatanSalesForce: row["Jabatan Salesforce"] || "",
-          mainDealer: row["Main Dealer"] || "",
+          spkNumber: row["No. SPK"] || "",
+          date: excelDateToJSDate(row.Tanggal),
+          customerName: row["Nama Customer"] || "",
+          stnkName: row["Nama STNK"] || "",
+          bbn: row.BBN || "",
+          salesName: row["Nama Salesman"] || "",
+          salesTeam: row["Sales Team"] || "",
+          fincoName: row["Nama Finco"] || "",
           salesSource: row["Sales Source"] || "",
-          sourceDocument: row["Source Document"] || "",
-          jpPo: parseInt(row["JP PO"]?.toString()) || null,
-          tenor: parseInt(row.Tenor?.toString()) || null,
-          branchCode: row["Branch Code"] || "",
-          typeName: row["Product Type"] || "",
+          registerNumber: row["No. Register SPK"] || "",
+          color: row.Warna || "",
+          quantity: parseInt(row.QTY?.toString()) || 0,
+          dpTotal: row["DP Total"] || "",
+          discount: row["Diskon Potongan Pelanggan"] || "",
+          credit: row.Cicilan || "",
+          tenor: row.Tenor || "",
+          status: row.Status || "",
+          cancelReason: row["Alasan Cancel"] || "",
+          branchCode: row["Kode Cabang"] || "",
+          typeName: row["Kode Produk"] || "",
           originalRowIndex: index,
         };
       } catch (error) {
@@ -493,7 +396,7 @@ export default function DoPenjualanPage() {
       onOk: async () => {
         setUndoLoading(true);
         try {
-          const response = await fetch("/api/do-penjualan/batch-delete", {
+          const response = await fetch("/api/spk/batch-delete", {
             method: "DELETE",
             headers: {
               "Content-Type": "application/json",
@@ -508,7 +411,6 @@ export default function DoPenjualanPage() {
               `Berhasil rollback ${result.deletedCount} data yang telah diimport`
             );
 
-            // Update import result to show rollback
             setImportResult((prev) =>
               prev
                 ? {
@@ -524,7 +426,6 @@ export default function DoPenjualanPage() {
                 : null
             );
 
-            // Refresh data table
             fetchData();
           } else {
             const error = await response.json();
@@ -546,7 +447,7 @@ export default function DoPenjualanPage() {
     try {
       const transformedData = transformCsvDataToApiFormat(csvData);
 
-      const response = await fetch("/api/do-penjualan", {
+      const response = await fetch("/api/spk", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -558,7 +459,6 @@ export default function DoPenjualanPage() {
       const result = await response.json();
 
       if (response.ok || response.status === 207) {
-        // Extract successful IDs for rollback capability
         const successfulIds = result.results
           ? result.results
               .filter((r: ImportApiResponse["results"][0]) => r.success)
@@ -576,7 +476,6 @@ export default function DoPenjualanPage() {
           toast.success(
             `Berhasil mengimport ${result.successCount} data dari ${csvData.length} total data`
           );
-          // Refresh data table
           fetchData();
         }
 
@@ -619,17 +518,17 @@ export default function DoPenjualanPage() {
         (pagination.current - 1) * pagination.pageSize + index + 1,
     },
     {
-      title: "SO Number",
-      dataIndex: "soNumber",
-      key: "soNumber",
+      title: "No. SPK",
+      dataIndex: "spkNumber",
+      key: "spkNumber",
       sorter: true,
       width: 150,
-      render: (soNumber: string | null) => soNumber || "-",
+      render: (spkNumber: string | null) => spkNumber || "-",
     },
     {
-      title: "SO Date",
-      dataIndex: "soDate",
-      key: "soDate",
+      title: "Tanggal",
+      dataIndex: "date",
+      key: "date",
       sorter: true,
       width: 120,
       render: (date: string | null) =>
@@ -639,65 +538,38 @@ export default function DoPenjualanPage() {
       title: "Customer",
       key: "customer",
       width: 200,
-      render: (record: DoPenjualanData) => (
+      render: (record: SpkData) => (
         <div>
           <Text strong>{record.customerName || "-"}</Text>
           <br />
           <Text type="secondary" className="text-xs">
-            {record.customerCode || "-"}
+            STNK: {record.stnkName || "-"}
           </Text>
         </div>
       ),
     },
     {
-      title: "Payment",
-      key: "payment",
-      width: 120,
-      render: (record: DoPenjualanData) => {
-        const color =
-          record.cashOrCredit === "Cash"
-            ? "green"
-            : record.cashOrCredit === "Credit"
-            ? "blue"
-            : "default";
-        return <Tag color={color}>{record.cashOrCredit || "-"}</Tag>;
-      },
-    },
-    {
-      title: "Contact",
-      key: "contact",
+      title: "Sales",
+      key: "sales",
       width: 150,
-      render: (record: DoPenjualanData) => (
+      render: (record: SpkData) => (
         <div>
-          <Text className="text-xs">{record.phoneNumber || "-"}</Text>
+          <Text>{record.salesName || "-"}</Text>
           <br />
           <Text type="secondary" className="text-xs">
-            {record.kota || "-"}
+            {record.salesTeam || "-"}
           </Text>
         </div>
       ),
     },
     {
-      title: "Engine/Chassis",
-      key: "numbers",
-      width: 180,
-      render: (record: DoPenjualanData) => (
-        <div>
-          <Tooltip title={record.engineNumber}>
-            <Text code className="text-xs block">
-              E: {record.engineNumber?.slice(-8) || "-"}
-            </Text>
-          </Tooltip>
-          <Tooltip title={record.chassisNumber}>
-            <Text code className="text-xs">
-              C: {record.chassisNumber?.slice(-8) || "-"}
-            </Text>
-          </Tooltip>
-        </div>
-      ),
+      title: "Type",
+      key: "type",
+      width: 120,
+      render: (record: SpkData) => <Tag color="blue">{record.type.name}</Tag>,
     },
     {
-      title: "Color",
+      title: "Warna",
       dataIndex: "color",
       key: "color",
       width: 100,
@@ -711,20 +583,36 @@ export default function DoPenjualanPage() {
       sorter: true,
       width: 80,
       align: "center" as const,
-      render: (quantity: number | null) => quantity || 0,
+      render: (quantity: number | null) => <Text strong>{quantity || 0}</Text>,
     },
     {
-      title: "Sales PIC",
-      dataIndex: "salesPic",
-      key: "salesPic",
+      title: "Finco",
+      dataIndex: "fincoName",
+      key: "fincoName",
       width: 120,
-      render: (salesPic: string | null) => salesPic || "-",
+      render: (finco: string | null) => finco || "-",
+    },
+    {
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
+      width: 100,
+      render: (status: string | null) => {
+        if (!status) return "-";
+        const color =
+          status === "Active"
+            ? "green"
+            : status === "Cancel"
+            ? "red"
+            : "orange";
+        return <Tag color={color}>{status}</Tag>;
+      },
     },
     {
       title: "Branch",
       key: "branch",
       width: 150,
-      render: (record: DoPenjualanData) => (
+      render: (record: SpkData) => (
         <div>
           <Text strong>{record.branch.name}</Text>
           <br />
@@ -732,20 +620,6 @@ export default function DoPenjualanPage() {
             {record.branch.code}
           </Text>
         </div>
-      ),
-    },
-    {
-      title: "Type",
-      key: "type",
-      render: (record: DoPenjualanData) => (
-        <Tag color="blue">{record.type.name}</Tag>
-      ),
-    },
-    {
-      title: "Series",
-      key: "series",
-      render: (record: DoPenjualanData) => (
-        <Tag color="green">{record.series.name}</Tag>
       ),
     },
   ];
@@ -758,8 +632,9 @@ export default function DoPenjualanPage() {
           <div>
             <Title level={2} className="mb-2 flex items-center gap-2">
               <FileText size={28} />
-              DO Penjualan Data
+              SPK Data
             </Title>
+            <Text type="secondary">Surat Pesanan Kendaraan</Text>
           </div>
         </div>
 
@@ -775,7 +650,6 @@ export default function DoPenjualanPage() {
                   </div>
                 )}
               </div>
-
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div
                   className={`p-4 rounded-lg border ${
@@ -825,7 +699,6 @@ export default function DoPenjualanPage() {
                     {importResult.successCount}
                   </div>
                 </div>
-
                 <div className="bg-red-50 p-4 rounded-lg border border-red-200">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-red-500 rounded-full"></div>
@@ -837,7 +710,6 @@ export default function DoPenjualanPage() {
                     {importResult.errorCount}
                   </div>
                 </div>
-
                 <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
@@ -850,7 +722,6 @@ export default function DoPenjualanPage() {
                   </div>
                 </div>
               </div>
-
               {importResult.errors.length > 0 && (
                 <div>
                   <div className="flex justify-between items-center mb-3">
@@ -880,19 +751,11 @@ export default function DoPenjualanPage() {
                             </Text>
                           </div>
                         </div>
-                        {error.data && (
-                          <div className="mt-2 text-xs text-gray-600 bg-gray-100 p-2 rounded">
-                            <Text code className="text-xs">
-                              {JSON.stringify(error.data, null, 2)}
-                            </Text>
-                          </div>
-                        )}
                       </div>
                     ))}
                   </div>
                 </div>
               )}
-
               <div className="flex justify-end gap-2">
                 {importResult.errorCount > 0 &&
                   importResult.successCount > 0 &&
@@ -920,12 +783,12 @@ export default function DoPenjualanPage() {
           <div className="mb-4 space-y-4">
             <div className="flex gap-4 items-center flex-wrap">
               <Search
-                placeholder="Cari SO number, customer, engine number..."
+                placeholder="Cari SPK number, customer, sales..."
                 prefix={<MagnifyingGlass size={16} />}
                 onSearch={handleSearch}
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
-                style={{ width: 350 }}
+                style={{ width: 300 }}
                 allowClear
               />
 
@@ -962,42 +825,20 @@ export default function DoPenjualanPage() {
               </Select>
 
               <Select
-                placeholder="Payment Type"
-                value={filterCashOrCredit || undefined}
-                onChange={handleCashOrCreditFilter}
-                style={{ width: 130 }}
+                placeholder="Filter Status"
+                value={filterStatus || undefined}
+                onChange={handleStatusFilter}
+                style={{ width: 120 }}
                 allowClear
               >
-                <Select.Option value="Cash">Cash</Select.Option>
-                <Select.Option value="Credit">Credit</Select.Option>
-              </Select>
-
-              <Select
-                mode="multiple"
-                placeholder="Filter POS"
-                value={filterPos}
-                onChange={handlePosFilter}
-                style={{ minWidth: 200 }}
-                maxTagCount="responsive"
-                maxTagPlaceholder={(omittedValues) =>
-                  omittedValues.length === posList.length
-                    ? "Semua POS"
-                    : `${omittedValues[0].label} +${omittedValues.length - 1}`
-                }
-                showSearch
-                optionFilterProp="children"
-              >
-                {posList.map((pos) => (
-                  <Select.Option key={pos.name} value={pos.name}>
-                    {pos.name} ({pos.count})
-                  </Select.Option>
-                ))}
+                <Select.Option value="Active">Active</Select.Option>
+                <Select.Option value="Cancel">Cancel</Select.Option>
               </Select>
 
               <Space>
                 <Button
                   onClick={() => {
-                    setImportResult(null); // Reset previous results
+                    setImportResult(null);
                     setOpenImport(true);
                   }}
                 >
@@ -1008,79 +849,32 @@ export default function DoPenjualanPage() {
                   onCancel={() => setOpenImport(false)}
                   visible={openImport}
                   onConfirmImport={handleImportConfirm}
-                  title="Import Supply Data"
+                  title="Import SPK Data"
                   loadingConfirm={importLoading}
                   templateColumns={[
-                    "No",
-                    "Branch Status",
-                    "Branch Code",
-                    "Branch Name",
-                    "SO Number",
-                    "SO Ref",
-                    "SO Date",
-                    "SO State",
-                    "Cash / Credit",
-                    "TOP",
-                    "Customer Code",
-                    "Customer Name",
-                    "KTP",
-                    "Alamat",
-                    "Kota",
-                    "Kecamatan",
-                    "Tgl. Lahir",
-                    "No. HP",
-                    "Pos",
-                    "Product Type",
-                    "Product Description",
-                    "Product Colour",
-                    "Qty",
-                    "Product Tahun",
-                    "Engine Number",
-                    "Chassis Number",
-                    "Harga Off (+PPN)",
-                    "Diskon Reguler",
-                    "Diskon Program External",
-                    "Diskon Program Internal",
-                    "Total Diskon Program",
-                    "Total Diskon Invoice",
-                    "Harga Jual Bersih (+PPN)",
-                    "DPP",
-                    "PPN",
-                    "Titipan BBN",
-                    "Biaya Retur",
-                    "Total Piutang Penjualan",
-                    "Piutang Uang Muka",
-                    "Piutang Pelunasan",
-                    "Nama Channel",
-                    "Nama Mediator",
-                    "Jumlah Mediator",
-                    "Status PKP Customer",
-                    "Nomor Faktur Pajak",
-                    "Kategori Produk-1",
-                    "Series",
-                    "Sales Coord Name",
-                    "Salesforce",
-                    "Jabatan Salesforce",
-                    "Register Activity",
-                    "Main Dealer",
-                    "Insentif Finco",
-                    "PS AHM",
-                    "PS MD",
-                    "PS Finco",
-                    "PS External Total",
-                    "Diskon Beban Dealer + Mediator",
-                    "HPP",
-                    "GP (DPP - HPP)",
-                    "GP + Klaim",
-                    "HPP BBN",
-                    "GP BBN",
-                    "Total GP",
-                    "Selisih Diskon Program",
-                    "Beban Dealer Barang Bonus",
+                    "Kode Cabang",
+                    "Nama Cabang",
+                    "No. SPK",
+                    "Tanggal",
+                    "Nama Customer",
+                    "Nama STNK",
+                    "BBN",
+                    "Nama Salesman",
+                    "Sales Team",
+                    "Nama Finco",
                     "Sales Source",
-                    "Source Document",
-                    "JP PO",
+                    "No. Register SPK",
+                    "Kode Produk",
+                    "Warna",
+                    "QTY",
+                    "DP Total",
+                    "Diskon Potongan Pelanggan",
+                    "Cicilan",
                     "Tenor",
+                    "Status",
+                    "Alasan Cancel",
+                    "Type",
+                    "Series",
                   ]}
                 />
                 {importLoading && (
@@ -1136,7 +930,7 @@ export default function DoPenjualanPage() {
               pageSizeOptions: ["10", "20", "50", "100"],
             }}
             onChange={handleTableChange}
-            scroll={{ x: 1600 }}
+            scroll={{ x: 1400 }}
             size="small"
           />
         </Card>

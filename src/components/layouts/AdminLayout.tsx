@@ -17,6 +17,7 @@ import {
   Package,
   Archive,
   FileText,
+  DotsThreeCircleIcon,
 } from "@phosphor-icons/react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
@@ -55,7 +56,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     {
       key: "dashboard",
       icon: <House size={18} />,
-      label: "Dashboard",
+      label: "Dashboard Penjualan",
       onClick: () => router.push("/admin/dashboard"),
     },
     {
@@ -84,6 +85,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       icon: <List size={18} />,
       label: "STU Data",
       onClick: () => router.push("/admin/stu"),
+    },
+    {
+      key: "spk",
+      icon: <DotsThreeCircleIcon size={18} />,
+      label: "SPK Data",
+      onClick: () => router.push("/admin/spk"),
     },
     {
       key: "sho",

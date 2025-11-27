@@ -13,15 +13,15 @@ import {
   Tag,
   message,
   Tooltip,
+  Modal,
+  Spin,
 } from "antd";
-import {
-  Package,
-  MagnifyingGlass,
-  FunnelSimple,
-  FileArrowDown,
-} from "@phosphor-icons/react";
+import { Package, MagnifyingGlass, FunnelSimple } from "@phosphor-icons/react";
 import AdminLayout from "@/components/layouts/AdminLayout";
 import dayjs from "dayjs";
+import ImportData from "@/components/ImportData";
+import { excelDateToJSDate, formatCurrency } from "@/lib/date";
+import { toast } from "sonner";
 
 const { Title, Text } = Typography;
 const { Search } = Input;
@@ -41,6 +41,7 @@ interface Type {
 interface Series {
   id: number;
   name: string;
+  code: string;
 }
 
 interface SupplyData {
@@ -68,6 +69,18 @@ interface SupplyData {
   series: Series;
 }
 
+interface ImportApiResponse {
+  message: string;
+  successCount: number;
+  errorCount: number;
+  results: Array<{
+    index: number;
+    data: SupplyData;
+    success: boolean;
+  }>;
+  errors: ImportError[];
+}
+
 interface ApiResponse {
   data: SupplyData[];
   pagination: {
@@ -78,8 +91,38 @@ interface ApiResponse {
   };
 }
 
+interface CsvDataRow {
+  No: number;
+  Cabang: string;
+  Supplier: string;
+  "BPB No": string;
+  Tanggal: number;
+  "SJ SUPPLIER No.": string;
+  Faktur: string;
+  "Faktur Date": string;
+  "Code Product": string;
+  Type: string;
+  QTY: number;
+  Warna: string;
+  "Status.": string;
+  "No. Mesin": string;
+  "No. Rangka": string;
+  "Harga/Unit": string;
+  Discount: string;
+  "AP. Unit": string;
+  "Kode Cabang": string;
+  Series: string;
+}
+
+interface ImportError {
+  index: number;
+  error: string;
+  data?: CsvDataRow;
+}
+
 export default function SupplyPage() {
   const [loading, setLoading] = useState(false);
+  const [openImport, setOpenImport] = useState(false);
   const [data, setData] = useState<SupplyData[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [types, setTypes] = useState<Type[]>([]);
@@ -94,6 +137,15 @@ export default function SupplyPage() {
   const [filterBranchId, setFilterBranchId] = useState<string>("");
   const [filterTypeId, setFilterTypeId] = useState<string>("");
   const [filterStatus, setFilterStatus] = useState<string>("");
+  const [importResult, setImportResult] = useState<{
+    successCount: number;
+    errorCount: number;
+    errors: ImportError[];
+    successfulIds?: number[];
+    rollbackMessage?: string;
+  } | null>(null);
+  const [importLoading, setImportLoading] = useState(false);
+  const [undoLoading, setUndoLoading] = useState(false);
 
   // Fetch supply data
   const fetchData = async (
@@ -178,6 +230,53 @@ export default function SupplyPage() {
     } catch {
       console.error("Failed to fetch types");
     }
+  };
+
+  const transformCsvDataToApiFormat = (csvData: CsvDataRow[]) => {
+    return csvData.map((row, index) => {
+      try {
+        return {
+          supplier: row.Supplier || "",
+          sjSupplier: row["SJ SUPPLIER No."] || "",
+          bpbNo: row["BPB No"] || "",
+          color: row.Warna || "",
+          status: row["Status."] || "",
+          machineNumber: row["No. Mesin"] || "",
+          frameNumber: row["No. Rangka"] || "",
+          pricePerUnit: parseInt(row["Harga/Unit"]) || 0,
+          discount: parseInt(row.Discount) || 0,
+          apUnit: parseInt(row["AP. Unit"]) || 0,
+          quantity: parseInt(row.QTY.toString()) || 0,
+          faktur: row.Faktur || "",
+          fakturDate: excelDateToJSDate(row["Faktur Date"]),
+          date: excelDateToJSDate(row.Tanggal),
+          branchCode: row["Kode Cabang"] || "",
+          typeName: row.Type || "",
+          originalRowIndex: index,
+        };
+      } catch (error) {
+        console.error(`Error transforming row ${index}:`, error);
+        return {
+          supplier: "",
+          sjSupplier: "",
+          bpbNo: "",
+          color: "",
+          status: "",
+          machineNumber: "",
+          frameNumber: "",
+          pricePerUnit: 0,
+          discount: 0,
+          apUnit: 0,
+          quantity: 0,
+          faktur: "",
+          fakturDate: "",
+          date: "",
+          branchCode: "",
+          typeName: "",
+          originalRowIndex: index,
+        };
+      }
+    });
   };
 
   useEffect(() => {
@@ -280,141 +379,151 @@ export default function SupplyPage() {
     fetchData(1, pagination.pageSize, "", sortBy, sortOrder, "", "", "");
   };
 
-  // Handle export data
-  const handleExportData = () => {
-    console.log("📤 Export Supply Data");
-    message.info(
-      "Export feature akan segera hadir. Data saat ini akan ditampilkan di console."
-    );
-
-    if (data.length === 0) {
-      console.log("⚠️ No data to export");
+  // Handle rollback/undo import with confirmation
+  const handleRollbackImport = async () => {
+    if (
+      !importResult?.successfulIds ||
+      importResult.successfulIds.length === 0
+    ) {
+      toast.error("Tidak ada data yang bisa di-rollback");
       return;
     }
 
-    console.group("📊 Current Supply Data Export");
-    console.table(
-      data.map((item) => ({
-        ID: item.id,
-        Supplier: item.supplier || "-",
-        "SJ Supplier": item.sjSupplier || "-",
-        BPB: item.bpb || "-",
-        Color: item.color || "-",
-        Status: item.status || "-",
-        "Machine Number": item.machineNumber || "-",
-        "Rangka Number": item.rangkaNumber || "-",
-        Price: item.price || 0,
-        Discount: item.discount || 0,
-        "AP Unit": item.apUnit || 0,
-        Quantity: item.quantity || 0,
-        Faktur: item.faktur || "-",
-        "Faktur Date": item.fakturDate || "-",
-        Date: item.date || "-",
-        Branch: item.branch.name,
-        "Branch Code": item.branch.code,
-        Type: item.type.name,
-        Series: item.series.name,
-      }))
-    );
-    console.groupEnd();
+    Modal.confirm({
+      title: "Konfirmasi Rollback",
+      content: (
+        <div>
+          <p>
+            Apakah Anda yakin ingin menghapus{" "}
+            <strong>{importResult.successCount} data</strong> yang sudah
+            berhasil diimport?
+          </p>
+          <p className="text-red-600 text-sm mt-2">
+            ⚠️ Tindakan ini tidak dapat dibatalkan!
+          </p>
+        </div>
+      ),
+      okText: "Ya, Rollback",
+      cancelText: "Batal",
+      okType: "danger",
+      onOk: async () => {
+        setUndoLoading(true);
+        try {
+          const response = await fetch("/api/supply/batch-delete", {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include",
+            body: JSON.stringify({ ids: importResult.successfulIds }),
+          });
 
-    const totalValue = data.reduce((sum, item) => sum + (item.apUnit || 0), 0);
-    console.log(`💰 Total Export Value: ${formatCurrency(totalValue)}`);
-  };
+          if (response.ok) {
+            const result = await response.json();
+            toast.success(
+              `Berhasil rollback ${result.deletedCount} data yang telah diimport`
+            );
 
-  // Handle import data (log to console for now)
-  const handleImportData = () => {
-    console.log("🚀 Import Supply Data - Feature Development");
-    message.info(
-      "Import feature akan segera hadir. Lihat console untuk struktur data yang diharapkan."
-    );
+            // Update import result to show rollback
+            setImportResult((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    successCount: 0,
+                    successfulIds: [],
+                    rollbackMessage: `${
+                      result.deletedCount
+                    } data berhasil di-rollback pada ${new Date().toLocaleString(
+                      "id-ID"
+                    )}`,
+                  }
+                : null
+            );
 
-    // Example data structure for supply import
-    const exampleSupplyData = [
-      {
-        supplier: "PT Supplier ABC",
-        sjSupplier: "SJ001/2024",
-        bpb: "BPB001/2024",
-        color: "Merah Metalik",
-        status: "Available",
-        machineNumber: "YZF1501234567890",
-        rangkaNumber: "MH3JKE12345678901",
-        price: 15000000,
-        discount: 500000,
-        apUnit: 14500000,
-        quantity: 1,
-        faktur: "FKT001/2024",
-        fakturDate: "2024-01-15",
-        date: "2024-01-15",
-        branchCode: "SMA-YMH-LBM", // Will be mapped to branch ID
-        typeName: "XMAX TECH MAX", // Will be mapped to type ID
+            // Refresh data table
+            fetchData();
+          } else {
+            const error = await response.json();
+            toast.error(`Gagal rollback data: ${error.error}`);
+          }
+        } catch (error) {
+          console.error("Rollback error:", error);
+          toast.error("Terjadi kesalahan saat rollback data");
+        } finally {
+          setUndoLoading(false);
+        }
       },
-      {
-        supplier: "PT Supplier XYZ",
-        sjSupplier: "SJ002/2024",
-        bpb: "BPB002/2024",
-        color: "Hitam Doff",
-        status: "Sold",
-        machineNumber: "YZF1509876543210",
-        rangkaNumber: "MH3JKE09876543210",
-        price: 16500000,
-        discount: 750000,
-        apUnit: 15750000,
-        quantity: 1,
-        faktur: "FKT002/2024",
-        fakturDate: "2024-01-20",
-        date: "2024-01-20",
-        branchCode: "SMA-YMH-LBM",
-        typeName: "NMAX TECH MAX",
-      },
-    ];
-
-    console.group("📋 Supply Data Import Structure");
-    console.log("Expected CSV/Excel columns:");
-    console.table({
-      Supplier: "PT Supplier ABC",
-      "SJ Supplier": "SJ001/2024",
-      BPB: "BPB001/2024",
-      Color: "Merah Metalik",
-      Status: "Available|Sold|Reserved",
-      "Machine Number": "YZF1501234567890",
-      "Rangka Number": "MH3JKE12345678901",
-      Price: "15000000",
-      Discount: "500000",
-      "AP Unit": "14500000",
-      Quantity: "1",
-      Faktur: "FKT001/2024",
-      "Faktur Date": "2024-01-15",
-      Date: "2024-01-15",
-      "Branch Code": "SMA-YMH-LBM",
-      "Type Name": "XMAX TECH MAX",
     });
-    console.log("Example data:");
-    console.table(exampleSupplyData);
-    console.groupEnd();
-
-    // Show summary statistics
-    const totalValue = exampleSupplyData.reduce(
-      (sum, item) => sum + (item.apUnit || 0),
-      0
-    );
-    const totalQuantity = exampleSupplyData.reduce(
-      (sum, item) => sum + item.quantity,
-      0
-    );
-
-    console.log(`💰 Total Value: ${formatCurrency(totalValue)}`);
-    console.log(`📦 Total Quantity: ${totalQuantity} units`);
-    console.log("🔗 API Endpoint: POST /api/supply (coming soon)");
   };
 
-  const formatCurrency = (amount: number | null) => {
-    if (!amount) return "-";
-    return new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      minimumFractionDigits: 0,
-    }).format(amount);
+  const handleImportConfirm = async (csvData: CsvDataRow[]) => {
+    setImportLoading(true);
+    setImportResult(null);
+
+    try {
+      const transformedData = transformCsvDataToApiFormat(csvData);
+
+      const response = await fetch("/api/supply", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(transformedData),
+      });
+
+      const result = await response.json();
+
+      if (response.ok || response.status === 207) {
+        // Extract successful IDs for rollback capability
+        const successfulIds = result.results
+          ? result.results
+              .filter((r: ImportApiResponse["results"][0]) => r.success)
+              .map((r: ImportApiResponse["results"][0]) => r.data.id)
+          : [];
+
+        setImportResult({
+          successCount: result.successCount || 0,
+          errorCount: result.errorCount || 0,
+          errors: result.errors || [],
+          successfulIds: successfulIds,
+        });
+
+        if (result.successCount > 0) {
+          toast.success(
+            `Berhasil mengimport ${result.successCount} data dari ${csvData.length} total data`
+          );
+          // Refresh data table
+          fetchData();
+        }
+
+        if (result.errorCount > 0) {
+          toast.warning(
+            `${result.errorCount} data gagal diimport. Silakan lihat detail error di bawah.`
+          );
+        }
+      } else {
+        toast.error("Gagal mengimport data");
+        setImportResult({
+          successCount: 0,
+          errorCount: csvData.length,
+          errors: [{ index: 0, error: result.error || "Unknown error" }],
+          successfulIds: [],
+        });
+      }
+    } catch (error) {
+      console.error("Import error:", error);
+      toast.error("Terjadi kesalahan saat mengimport data");
+      setImportResult({
+        successCount: 0,
+        errorCount: csvData.length,
+        errors: [{ index: 0, error: "Network or server error" }],
+        successfulIds: [],
+      });
+    } finally {
+      setImportLoading(false);
+      setOpenImport(false);
+    }
   };
 
   const columns = [
@@ -633,60 +742,156 @@ export default function SupplyPage() {
           </div>
         </div>
 
-        {/* Summary Statistics */}
-        {data.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <Card>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">
-                  {data.length}
-                </div>
-                <div className="text-sm text-gray-600">Total Records</div>
+        {/* Import Result Feedback */}
+        {importResult && (
+          <Card className="mb-4">
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <Title level={4}>Hasil Import Data</Title>
+                {importResult.rollbackMessage && (
+                  <div className="text-sm text-blue-600 bg-blue-50 px-3 py-1 rounded-lg border border-blue-200">
+                    ✅ {importResult.rollbackMessage}
+                  </div>
+                )}
               </div>
-            </Card>
 
-            <Card>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">
-                  {data.reduce((sum, item) => sum + (item.quantity || 0), 0)}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div
+                  className={`p-4 rounded-lg border ${
+                    importResult.successCount === 0 &&
+                    importResult.successfulIds &&
+                    importResult.successfulIds.length === 0
+                      ? "bg-gray-50 border-gray-200"
+                      : "bg-green-50 border-green-200"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={`w-3 h-3 rounded-full ${
+                        importResult.successCount === 0 &&
+                        importResult.successfulIds &&
+                        importResult.successfulIds.length === 0
+                          ? "bg-gray-400"
+                          : "bg-green-500"
+                      }`}
+                    ></div>
+                    <Text
+                      strong
+                      className={
+                        importResult.successCount === 0 &&
+                        importResult.successfulIds &&
+                        importResult.successfulIds.length === 0
+                          ? "text-gray-600"
+                          : "text-green-700"
+                      }
+                    >
+                      Data Berhasil
+                      {importResult.successCount === 0 &&
+                        importResult.successfulIds &&
+                        importResult.successfulIds.length === 0 &&
+                        " (Rolled Back)"}
+                    </Text>
+                  </div>
+                  <div
+                    className={`text-2xl font-bold mt-1 ${
+                      importResult.successCount === 0 &&
+                      importResult.successfulIds &&
+                      importResult.successfulIds.length === 0
+                        ? "text-gray-600"
+                        : "text-green-700"
+                    }`}
+                  >
+                    {importResult.successCount}
+                  </div>
                 </div>
-                <div className="text-sm text-gray-600">Total Quantity</div>
-              </div>
-            </Card>
 
-            <Card>
-              <div className="text-center">
-                <div className="text-lg font-bold text-purple-600">
-                  {formatCurrency(
-                    data.reduce((sum, item) => sum + (item.price || 0), 0)
+                <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                    <Text strong className="text-red-700">
+                      Data Gagal
+                    </Text>
+                  </div>
+                  <div className="text-2xl font-bold text-red-700 mt-1">
+                    {importResult.errorCount}
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                    <Text strong className="text-blue-700">
+                      Total Diproses
+                    </Text>
+                  </div>
+                  <div className="text-2xl font-bold text-blue-700 mt-1">
+                    {importResult.successCount + importResult.errorCount}
+                  </div>
+                </div>
+              </div>
+
+              {importResult.errors.length > 0 && (
+                <div>
+                  <div className="flex justify-between items-center mb-3">
+                    <Title level={5} className="text-red-600 mb-0">
+                      Detail Data yang Gagal:
+                    </Title>
+                    {importResult.successCount > 0 && (
+                      <div className="text-sm text-amber-600 bg-amber-50 px-3 py-1 rounded-lg border border-amber-200">
+                        ⚠️ Ada {importResult.successCount} data yang sudah
+                        berhasil diimport
+                      </div>
+                    )}
+                  </div>
+                  <div className="max-h-60 overflow-y-auto space-y-2">
+                    {importResult.errors.map((error, index) => (
+                      <div
+                        key={index}
+                        className="p-3 bg-red-50 border border-red-200 rounded-lg"
+                      >
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <Text strong className="text-red-700">
+                              Baris {error.index + 1}:
+                            </Text>
+                            <Text className="text-red-600 ml-2">
+                              {error.error}
+                            </Text>
+                          </div>
+                        </div>
+                        {error.data && (
+                          <div className="mt-2 text-xs text-gray-600 bg-gray-100 p-2 rounded">
+                            <Text code className="text-xs">
+                              {JSON.stringify(error.data, null, 2)}
+                            </Text>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2">
+                {importResult.errorCount > 0 &&
+                  importResult.successCount > 0 &&
+                  importResult.successfulIds &&
+                  importResult.successfulIds.length > 0 && (
+                    <Button
+                      onClick={handleRollbackImport}
+                      loading={undoLoading}
+                      danger
+                      type="primary"
+                    >
+                      🔄 Undo & Rollback ({importResult.successCount} data)
+                    </Button>
                   )}
-                </div>
-                <div className="text-sm text-gray-600">Gross Price</div>
+                <Button onClick={() => setImportResult(null)} type="default">
+                  Tutup Laporan
+                </Button>
               </div>
-            </Card>
-
-            <Card>
-              <div className="text-center">
-                <div className="text-lg font-bold text-red-600">
-                  {formatCurrency(
-                    data.reduce((sum, item) => sum + (item.discount || 0), 0)
-                  )}
-                </div>
-                <div className="text-sm text-gray-600">Total Discount</div>
-              </div>
-            </Card>
-
-            <Card>
-              <div className="text-center">
-                <div className="text-lg font-bold text-orange-600">
-                  {formatCurrency(
-                    data.reduce((sum, item) => sum + (item.apUnit || 0), 0)
-                  )}
-                </div>
-                <div className="text-sm text-gray-600">Total AP Unit</div>
-              </div>
-            </Card>
-          </div>
+            </div>
+          </Card>
         )}
 
         {/* Filters and Search */}
@@ -747,20 +952,54 @@ export default function SupplyPage() {
                 <Select.Option value="Reserved">Reserved</Select.Option>
               </Select>
 
-              <Space>
-                <Button onClick={handleImportData} type="primary">
-                  Import Data (Console)
-                </Button>
-                <Tooltip title="Export current data to console">
-                  <Button
-                    onClick={handleExportData}
-                    icon={<FileArrowDown size={16} />}
-                    disabled={data.length === 0}
-                  >
-                    Export ({data.length})
-                  </Button>
-                </Tooltip>
-              </Space>
+              <Button
+                onClick={() => {
+                  setImportResult(null); // Reset previous results
+                  setOpenImport(true);
+                }}
+              >
+                Import Data
+              </Button>
+              <ImportData
+                maxFileSize={30}
+                onCancel={() => setOpenImport(false)}
+                visible={openImport}
+                onConfirmImport={handleImportConfirm}
+                title="Import Supply Data"
+                loadingConfirm={importLoading}
+                templateColumns={[
+                  "No",
+                  "Cabang",
+                  "Supplier",
+                  "BPB No",
+                  "Tanggal",
+                  "SJ SUPPLIER No.",
+                  "Faktur",
+                  "Faktur Date",
+                  "Code Product",
+                  "Type",
+                  "QTY",
+                  "Warna",
+                  "Status.",
+                  "No. Mesin",
+                  "No. Rangka",
+                  "Harga/Unit",
+                  "Discount",
+                  "AP. Unit",
+                  "Kode Cabang",
+                  "Series",
+                ]}
+              />
+              {importLoading && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                  <div className="bg-white p-6 rounded-lg">
+                    <Spin size="large" />
+                    <div className="mt-4">
+                      <Text>Sedang memproses import data...</Text>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex justify-between items-center">

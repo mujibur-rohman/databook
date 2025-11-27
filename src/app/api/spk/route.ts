@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { doPenjualan, branches, types, series } from "@/db/schema";
-import { eq, ilike, desc, asc, count, or, and, inArray } from "drizzle-orm";
+import { spk, branches, types, series } from "@/db/schema";
+import { eq, ilike, desc, asc, count, or, and } from "drizzle-orm";
 
-// GET - List doPenjualan with pagination, search, and relations
+// GET - List SPK with pagination, search, and relations
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -14,8 +14,7 @@ export async function GET(request: NextRequest) {
     const sortOrder = searchParams.get("sortOrder") || "desc";
     const branchId = searchParams.get("branchId");
     const typeId = searchParams.get("typeId");
-    const cashOrCredit = searchParams.get("cashOrCredit");
-    const posValues = searchParams.get("pos"); // comma-separated POS values
+    const status = searchParams.get("status");
 
     const offset = (page - 1) * limit;
 
@@ -25,12 +24,11 @@ export async function GET(request: NextRequest) {
     if (search) {
       whereConditions.push(
         or(
-          ilike(doPenjualan.soNumber, `%${search}%`),
-          ilike(doPenjualan.customerName, `%${search}%`),
-          ilike(doPenjualan.customerCode, `%${search}%`),
-          ilike(doPenjualan.engineNumber, `%${search}%`),
-          ilike(doPenjualan.chassisNumber, `%${search}%`),
-          ilike(doPenjualan.salesPic, `%${search}%`),
+          ilike(spk.spkNumber, `%${search}%`),
+          ilike(spk.customerName, `%${search}%`),
+          ilike(spk.stnkName, `%${search}%`),
+          ilike(spk.salesName, `%${search}%`),
+          ilike(spk.registerNumber, `%${search}%`),
           ilike(branches.name, `%${search}%`),
           ilike(types.name, `%${search}%`),
           ilike(branches.code, `%${search}%`)
@@ -39,28 +37,23 @@ export async function GET(request: NextRequest) {
     }
 
     if (branchId) {
-      whereConditions.push(eq(doPenjualan.branchId, parseInt(branchId)));
+      whereConditions.push(eq(spk.branchId, parseInt(branchId)));
     }
 
     if (typeId) {
-      whereConditions.push(eq(doPenjualan.typeId, parseInt(typeId)));
+      whereConditions.push(eq(spk.typeId, parseInt(typeId)));
     }
 
-    if (cashOrCredit) {
-      whereConditions.push(eq(doPenjualan.cashOrCredit, cashOrCredit));
-    }
-
-    if (posValues) {
-      const posArray = posValues.split(",");
-      whereConditions.push(inArray(doPenjualan.pos, posArray));
+    if (status) {
+      whereConditions.push(eq(spk.status, status));
     }
 
     // Get total count
     const totalQuery = db
       .select({ count: count() })
-      .from(doPenjualan)
-      .leftJoin(branches, eq(doPenjualan.branchId, branches.id))
-      .leftJoin(types, eq(doPenjualan.typeId, types.id))
+      .from(spk)
+      .leftJoin(branches, eq(spk.branchId, branches.id))
+      .leftJoin(types, eq(spk.typeId, types.id))
       .leftJoin(series, eq(types.seriesId, series.id));
 
     if (whereConditions.length > 0) {
@@ -78,67 +71,43 @@ export async function GET(request: NextRequest) {
     let orderCondition;
     if (sortBy === "quantity") {
       orderCondition =
-        sortOrder === "asc"
-          ? asc(doPenjualan.quantity)
-          : desc(doPenjualan.quantity);
-    } else if (sortBy === "soDate") {
+        sortOrder === "asc" ? asc(spk.quantity) : desc(spk.quantity);
+    } else if (sortBy === "date") {
+      orderCondition = sortOrder === "asc" ? asc(spk.date) : desc(spk.date);
+    } else if (sortBy === "spkNumber") {
       orderCondition =
-        sortOrder === "asc"
-          ? asc(doPenjualan.soDate)
-          : desc(doPenjualan.soDate);
-    } else if (sortBy === "customerName") {
-      orderCondition =
-        sortOrder === "asc"
-          ? asc(doPenjualan.customerName)
-          : desc(doPenjualan.customerName);
-    } else if (sortBy === "soNumber") {
-      orderCondition =
-        sortOrder === "asc"
-          ? asc(doPenjualan.soNumber)
-          : desc(doPenjualan.soNumber);
+        sortOrder === "asc" ? asc(spk.spkNumber) : desc(spk.spkNumber);
     } else {
       orderCondition =
-        sortOrder === "asc"
-          ? asc(doPenjualan.createdAt)
-          : desc(doPenjualan.createdAt);
+        sortOrder === "asc" ? asc(spk.createdAt) : desc(spk.createdAt);
     }
 
     // Get paginated data with relations
     const dataQuery = db
       .select({
-        id: doPenjualan.id,
-        soNumber: doPenjualan.soNumber,
-        soDate: doPenjualan.soDate,
-        soState: doPenjualan.soState,
-        cashOrCredit: doPenjualan.cashOrCredit,
-        top: doPenjualan.top,
-        customerCode: doPenjualan.customerCode,
-        customerName: doPenjualan.customerName,
-        ktp: doPenjualan.ktp,
-        alamat: doPenjualan.alamat,
-        kota: doPenjualan.kota,
-        kecamatan: doPenjualan.kecamatan,
-        birthday: doPenjualan.birthday,
-        phoneNumber: doPenjualan.phoneNumber,
-        pos: doPenjualan.pos,
-        color: doPenjualan.color,
-        quantity: doPenjualan.quantity,
-        year: doPenjualan.year,
-        engineNumber: doPenjualan.engineNumber,
-        chassisNumber: doPenjualan.chassisNumber,
-        productCategory: doPenjualan.productCategory,
-        salesPic: doPenjualan.salesPic,
-        salesForce: doPenjualan.salesForce,
-        jabatanSalesForce: doPenjualan.jabatanSalesForce,
-        mainDealer: doPenjualan.mainDealer,
-        salesSource: doPenjualan.salesSource,
-        sourceDocument: doPenjualan.sourceDocument,
-        jpPo: doPenjualan.jpPo,
-        tenor: doPenjualan.tenor,
-        branchId: doPenjualan.branchId,
-        typeId: doPenjualan.typeId,
-        createdAt: doPenjualan.createdAt,
-        updatedAt: doPenjualan.updatedAt,
+        id: spk.id,
+        spkNumber: spk.spkNumber,
+        date: spk.date,
+        customerName: spk.customerName,
+        stnkName: spk.stnkName,
+        bbn: spk.bbn,
+        salesName: spk.salesName,
+        salesTeam: spk.salesTeam,
+        fincoName: spk.fincoName,
+        salesSource: spk.salesSource,
+        registerNumber: spk.registerNumber,
+        color: spk.color,
+        quantity: spk.quantity,
+        dpTotal: spk.dpTotal,
+        discount: spk.discount,
+        credit: spk.credit,
+        tenor: spk.tenor,
+        status: spk.status,
+        cancelReason: spk.cancelReason,
+        branchId: spk.branchId,
+        typeId: spk.typeId,
+        createdAt: spk.createdAt,
+        updatedAt: spk.updatedAt,
         branch: {
           id: branches.id,
           name: branches.name,
@@ -154,9 +123,9 @@ export async function GET(request: NextRequest) {
           name: series.name,
         },
       })
-      .from(doPenjualan)
-      .leftJoin(branches, eq(doPenjualan.branchId, branches.id))
-      .leftJoin(types, eq(doPenjualan.typeId, types.id))
+      .from(spk)
+      .leftJoin(branches, eq(spk.branchId, branches.id))
+      .leftJoin(types, eq(spk.typeId, types.id))
       .leftJoin(series, eq(types.seriesId, series.id))
       .orderBy(orderCondition)
       .limit(limit)
@@ -182,15 +151,15 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("DO Penjualan GET error:", error);
+    console.error("SPK GET error:", error);
     return NextResponse.json(
-      { error: "Terjadi kesalahan saat mengambil data DO Penjualan" },
+      { error: "Terjadi kesalahan saat mengambil data SPK" },
       { status: 500 }
     );
   }
 }
 
-// POST - Create multiple DO Penjualan records
+// POST - Create multiple SPK records
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -233,7 +202,7 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        // Find type by name
+        // Find type by code
         const type = await db
           .select()
           .from(types)
@@ -243,43 +212,33 @@ export async function POST(request: NextRequest) {
         if (type.length === 0) {
           errors.push({
             index: i,
-            error: `Type dengan nama ${item.typeName} tidak ditemukan`,
+            error: `Type dengan kode ${item.typeName} tidak ditemukan`,
           });
           continue;
         }
 
-        // Insert DO Penjualan record
+        // Insert SPK record
         const newRecord = await db
-          .insert(doPenjualan)
+          .insert(spk)
           .values({
-            soNumber: item.soNumber || null,
-            soDate: item.soDate ? new Date(item.soDate) : null,
-            soState: item.soState || null,
-            cashOrCredit: item.cashOrCredit || null,
-            top: item.top || null,
-            customerCode: item.customerCode || null,
+            spkNumber: item.spkNumber || null,
+            date: item.date ? new Date(item.date) : null,
             customerName: item.customerName || null,
-            ktp: item.ktp || null,
-            alamat: item.alamat || null,
-            kota: item.kota || null,
-            kecamatan: item.kecamatan || null,
-            birthday: item.birthday ? new Date(item.birthday) : null,
-            phoneNumber: item.phoneNumber || null,
-            pos: item.pos || null,
+            stnkName: item.stnkName || null,
+            bbn: item.bbn || null,
+            salesName: item.salesName || null,
+            salesTeam: item.salesTeam || null,
+            fincoName: item.fincoName || null,
+            salesSource: item.salesSource || null,
+            registerNumber: item.registerNumber || null,
             color: item.color || null,
             quantity: item.quantity || 0,
-            year: item.year || null,
-            engineNumber: item.engineNumber || null,
-            chassisNumber: item.chassisNumber || null,
-            productCategory: item.productCategory || null,
-            salesPic: item.salesPic || null,
-            salesForce: item.salesForce || null,
-            jabatanSalesForce: item.jabatanSalesForce || null,
-            mainDealer: item.mainDealer || null,
-            salesSource: item.salesSource || null,
-            sourceDocument: item.sourceDocument || null,
-            jpPo: item.jpPo || null,
+            dpTotal: item.dpTotal || null,
+            discount: item.discount || null,
+            credit: item.credit || null,
             tenor: item.tenor || null,
+            status: item.status || null,
+            cancelReason: item.cancelReason || null,
             branchId: branch[0].id,
             typeId: type[0].id,
           })
@@ -310,7 +269,7 @@ export async function POST(request: NextRequest) {
     const statusCode = errors.length > 0 ? 207 : 201;
     return NextResponse.json(response, { status: statusCode });
   } catch (error) {
-    console.error("DO Penjualan POST error:", error);
+    console.error("SPK POST error:", error);
     return NextResponse.json(
       { error: "Terjadi kesalahan saat menyimpan data" },
       { status: 500 }
