@@ -70,10 +70,11 @@ interface CsvDataRow {
   "Desciption Unit": string;
   Type: string;
   QTY: number | string;
-  "Kode Cabang": string;
-  TANGGAL: number | string;
+  "Branch Code": string;
+  Tanggal: number | string;
   KETERANGAN: string;
   Series: string;
+  Kategori: string;
 }
 
 interface ImportError {
@@ -286,9 +287,10 @@ export default function SellInPage() {
       try {
         return {
           quantity: parseInt(row.QTY.toString()) || 0,
-          sellDate: excelDateToJSDate(row.TANGGAL),
+          sellDate: excelDateToJSDate(row.Tanggal),
+          kategori: row.Kategori,
           description: row["Desciption Unit"] || row.KETERANGAN || "",
-          branchCode: row["Kode Cabang"] || "",
+          branchCode: row["Branch Code"] || "",
           typeName: row.Type || "",
           originalRowIndex: index, // Keep track of original row for error reporting
         };
@@ -297,6 +299,7 @@ export default function SellInPage() {
         return {
           quantity: 0,
           sellDate: "",
+          kategori: "",
           description: "",
           branchCode: "",
           typeName: "",

@@ -10,6 +10,7 @@ interface SellInItem {
   description: string;
   branchCode: string;
   typeName: string;
+  kategori: string;
 }
 
 // GET - List sell_in with pagination, search, and relations
@@ -170,14 +171,13 @@ export async function POST(request: NextRequest) {
         if (
           !item.quantity ||
           !item.sellDate ||
-          !item.description ||
           !item.branchCode ||
           !item.typeName
         ) {
           errors.push({
             index: i,
             error:
-              "Semua field wajib diisi: quantity, sellDate, description, branchCode, typeName",
+              "Field wajib diisi: quantity, sellDate, branchCode, typeName",
           });
           continue;
         }
@@ -221,6 +221,7 @@ export async function POST(request: NextRequest) {
             description: item.description,
             branchId: branch[0].id,
             typeId: type[0].id,
+            category: item.kategori,
           })
           .returning();
 

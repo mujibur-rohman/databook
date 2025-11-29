@@ -53,7 +53,8 @@ export const sellIn = pgTable("sell_in", {
   id: serial("id").primaryKey(),
   quantity: integer("quantity").notNull(),
   sellDate: timestamp("sell_date").notNull(),
-  description: varchar("description", { length: 255 }).notNull(),
+  description: varchar("description", { length: 255 }),
+  category: varchar("category", { length: 255 }),
   branchId: integer("branch_id")
     .notNull()
     .references(() => branches.id, { onDelete: "cascade" }),

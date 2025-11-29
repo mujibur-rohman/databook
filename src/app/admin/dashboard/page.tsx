@@ -4,9 +4,6 @@ import { useState, useEffect } from "react";
 import { Card, Typography, Select, DatePicker, Spin, Table } from "antd";
 import AdminLayout from "@/components/layouts/AdminLayout";
 import dynamic from "next/dynamic";
-import { useDoPenjualanAnalytics } from "@/hooks/useDoPenjualanAnalytics";
-import { useDoPenjualanBarChart } from "@/hooks/useDoPenjualanBarChart";
-import { useSalesSource } from "@/hooks/useSalesSource";
 import { useBranches } from "@/hooks/useBranches";
 import { useTypes } from "@/hooks/useTypes";
 import { usePosList } from "@/hooks/usePosList";
@@ -15,16 +12,7 @@ import {
   useCashOrCreditList,
   useJabatanSalesForceList,
 } from "@/hooks/useCategoryLists";
-import {
-  useTypeDistribution,
-  usePosDistribution,
-  useSeriesDistribution,
-  useProductCategoryDistribution,
-  useSalesForceDistribution,
-  useKotaDistribution,
-  useKecamatanDistribution,
-  useTenorDistribution,
-} from "@/hooks/useDistributions";
+import { useDashboardAnalytics } from "@/hooks/useDashboardAnalytics";
 import dayjs, { Dayjs } from "dayjs";
 
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
@@ -94,8 +82,8 @@ export default function DashboardPage() {
     filterJabatanSalesForce.length,
   ]);
 
-  // Fetch analytics data
-  const { data: analyticsResponse, isLoading } = useDoPenjualanAnalytics({
+  // Fetch unified dashboard analytics data
+  const { data: dashboardData, isLoading } = useDashboardAnalytics({
     startDate: dateRange[0]?.format("YYYY-MM-DD"),
     endDate: dateRange[1]?.format("YYYY-MM-DD"),
     branchIds: filterBranchIds,
@@ -106,65 +94,30 @@ export default function DashboardPage() {
     jabatanSalesForce: filterJabatanSalesForce,
   });
 
-  const analyticsData = analyticsResponse?.data || [];
-  const total = analyticsResponse?.total || 0;
+  const analyticsData = dashboardData?.analytics.data || [];
+  const total = dashboardData?.analytics.total || 0;
+  const barChartData = dashboardData?.barChart.data || [];
+  const salesSourceData = dashboardData?.distributions.salesSource.data || [];
 
-  // Fetch bar chart data
-  const { data: barChartResponse } = useDoPenjualanBarChart({
-    startDate: dateRange[0]?.format("YYYY-MM-DD"),
-    endDate: dateRange[1]?.format("YYYY-MM-DD"),
-    branchIds: filterBranchIds,
-    typeIds: filterTypeIds,
-    pos: filterPos,
-    productCategory: filterProductCategory,
-    cashOrCredit: filterCashOrCredit,
-    jabatanSalesForce: filterJabatanSalesForce,
-  });
+  const typeDist = dashboardData?.distributions.type;
+  const posDist = dashboardData?.distributions.pos;
+  const seriesDist = dashboardData?.distributions.series;
+  const categoryDist = dashboardData?.distributions.productCategory;
+  const salesForceDist = dashboardData?.distributions.salesForce;
+  const kotaDist = dashboardData?.distributions.kota;
+  const kecamatanDist = dashboardData?.distributions.kecamatan;
+  const tenorDist = dashboardData?.distributions.tenor;
+  const cashOrCreditDist = dashboardData?.distributions.cashOrCredit;
 
-  const barChartData = barChartResponse?.data || [];
-
-  // Fetch sales source data
-  const { data: salesSourceResponse } = useSalesSource({
-    startDate: dateRange[0]?.format("YYYY-MM-DD"),
-    endDate: dateRange[1]?.format("YYYY-MM-DD"),
-    branchIds: filterBranchIds,
-    typeIds: filterTypeIds,
-    pos: filterPos,
-    productCategory: filterProductCategory,
-    cashOrCredit: filterCashOrCredit,
-    jabatanSalesForce: filterJabatanSalesForce,
-  });
-
-  const salesSourceData = salesSourceResponse?.data || [];
-
-  // Fetch distribution data
-  const distributionParams = {
-    startDate: dateRange[0]?.format("YYYY-MM-DD"),
-    endDate: dateRange[1]?.format("YYYY-MM-DD"),
-    branchIds: filterBranchIds,
-    typeIds: filterTypeIds,
-    pos: filterPos,
-    productCategory: filterProductCategory,
-    cashOrCredit: filterCashOrCredit,
-    jabatanSalesForce: filterJabatanSalesForce,
-  };
-
-  const { data: typeDist, isLoading: isLoadingType } =
-    useTypeDistribution(distributionParams);
-  const { data: posDist, isLoading: isLoadingPos } =
-    usePosDistribution(distributionParams);
-  const { data: seriesDist, isLoading: isLoadingSeries } =
-    useSeriesDistribution(distributionParams);
-  const { data: categoryDist, isLoading: isLoadingCategory } =
-    useProductCategoryDistribution(distributionParams);
-  const { data: salesForceDist, isLoading: isLoadingSalesForce } =
-    useSalesForceDistribution(distributionParams);
-  const { data: kotaDist, isLoading: isLoadingKota } =
-    useKotaDistribution(distributionParams);
-  const { data: kecamatanDist, isLoading: isLoadingKecamatan } =
-    useKecamatanDistribution(distributionParams);
-  const { data: tenorDist, isLoading: isLoadingTenor } =
-    useTenorDistribution(distributionParams);
+  // Loading states are now unified
+  const isLoadingType = isLoading;
+  const isLoadingPos = isLoading;
+  const isLoadingSeries = isLoading;
+  const isLoadingCategory = isLoading;
+  const isLoadingSalesForce = isLoading;
+  const isLoadingKota = isLoading;
+  const isLoadingKecamatan = isLoading;
+  const isLoadingTenor = isLoading;
 
   // Prepare chart data
   const chartOptions: ApexCharts.ApexOptions = {
@@ -291,9 +244,7 @@ export default function DashboardPage() {
       },
     },
     subtitle: {
-      text: `Total: ${
-        barChartResponse?.total.toLocaleString("id-ID") || 0
-      } unit`,
+      text: `Total: ${total.toLocaleString("id-ID")} unit`,
       align: "left",
     },
     colors: ["#00E396"],
@@ -313,6 +264,61 @@ export default function DashboardPage() {
       data: barChartData.map((item) => item.quantity),
     },
   ];
+
+  // Prepare pie chart data for Cash/Credit
+  const pieChartOptions: ApexCharts.ApexOptions = {
+    chart: {
+      type: "pie",
+      height: 400,
+    },
+    labels:
+      cashOrCreditDist?.data.map((item: { name: string }) => item.name) || [],
+    colors: ["#00E396", "#008FFB", "#FEB019", "#FF4560"],
+    title: {
+      text: "Distribusi Metode Pembayaran",
+      align: "left",
+      style: {
+        fontSize: "16px",
+        fontWeight: 600,
+      },
+    },
+    subtitle: {
+      text: `Total: ${
+        cashOrCreditDist?.total.toLocaleString("id-ID") || 0
+      } unit`,
+      align: "left",
+    },
+    legend: {
+      position: "bottom",
+      horizontalAlign: "center",
+    },
+    dataLabels: {
+      enabled: true,
+      formatter: (val: number) => `${val.toFixed(1)}%`,
+    },
+    tooltip: {
+      y: {
+        formatter: (value) => `${value.toLocaleString("id-ID")} unit`,
+      },
+    },
+    responsive: [
+      {
+        breakpoint: 480,
+        options: {
+          chart: {
+            width: 300,
+          },
+          legend: {
+            position: "bottom",
+          },
+        },
+      },
+    ],
+  };
+
+  const pieChartSeries =
+    cashOrCreditDist?.data.map((item: { quantity: number }) => item.quantity) ||
+    [];
 
   return (
     <AdminLayout>
@@ -623,6 +629,28 @@ export default function DashboardPage() {
             <div className="flex justify-center items-center h-96">
               <Text type="secondary">
                 Tidak ada data untuk ditampilkan. Silakan sesuaikan filter.
+              </Text>
+            </div>
+          )}
+        </Card>
+
+        {/* Pie Chart - Cash or Credit Distribution */}
+        <Card className="mb-6">
+          {isLoading ? (
+            <div className="flex justify-center items-center h-96">
+              <Spin size="large" />
+            </div>
+          ) : cashOrCreditDist?.data && cashOrCreditDist.data.length > 0 ? (
+            <Chart
+              options={pieChartOptions}
+              series={pieChartSeries}
+              type="pie"
+              height={400}
+            />
+          ) : (
+            <div className="flex justify-center items-center h-96">
+              <Text type="secondary">
+                Tidak ada data metode pembayaran untuk ditampilkan.
               </Text>
             </div>
           )}

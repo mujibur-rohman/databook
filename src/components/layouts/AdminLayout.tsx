@@ -18,6 +18,7 @@ import {
   Archive,
   FileText,
   DotsThreeCircleIcon,
+  ChartBarHorizontalIcon,
 } from "@phosphor-icons/react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
@@ -58,6 +59,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       icon: <House size={18} />,
       label: "Dashboard Penjualan",
       onClick: () => router.push("/admin/dashboard"),
+    },
+    {
+      key: "dashboard-data",
+      icon: <ChartBarHorizontalIcon size={18} />,
+      label: "Dashboard Data",
+      onClick: () => router.push("/admin/dashboard-data"),
     },
     {
       type: "divider",
@@ -148,6 +155,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   // Get current selected keys based on pathname
   const getSelectedKeys = () => {
     if (pathname === "/admin/dashboard") return ["dashboard"];
+    if (pathname === "/admin/dashboard-data") return ["dashboard-data"];
     if (pathname.includes("/admin/master-data/branches")) return ["branches"];
     if (pathname.includes("/admin/master-data/types")) return ["types"];
     if (pathname.includes("/admin/master-data/series")) return ["series"];

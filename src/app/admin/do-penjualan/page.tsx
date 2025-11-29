@@ -40,7 +40,7 @@ interface CsvDataRow {
   "Branch Name": string;
   "SO Number": string;
   "SO Ref": string;
-  "SO Date": number;
+  Tanggal: number;
   "SO State": string;
   "Cash / Credit": string;
   TOP: string;
@@ -53,13 +53,13 @@ interface CsvDataRow {
   "Tgl. Lahir": number;
   "No. HP": number;
   Pos: string;
-  "Product Type": string;
+  "Kode Type": string;
   "Product Description": string;
   "Product Colour": string;
   Qty: number;
   "Product Tahun": number;
-  "Engine Number": string;
-  "Chassis Number": string;
+  "No Mesin": string;
+  "No Rangka": string;
   "Harga Off (+PPN)": string;
   "Diskon Reguler": string;
   "Diskon Program External": string;
@@ -79,7 +79,7 @@ interface CsvDataRow {
   "Jumlah Mediator": string;
   "Status PKP Customer": string;
   "Nomor Faktur Pajak": string;
-  "Kategori Produk-1": string;
+  Kategori: string;
   Series: string;
   "Sales Coord Name": string;
   Salesforce: string;
@@ -421,7 +421,7 @@ export default function DoPenjualanPage() {
       try {
         return {
           soNumber: row["SO Number"] || "",
-          soDate: excelDateToJSDate(row["SO Date"]),
+          soDate: excelDateToJSDate(row["Tanggal"]),
           soState: row["SO State"] || "",
           cashOrCredit: row["Cash / Credit"] || "",
           top: row.TOP || "",
@@ -437,9 +437,9 @@ export default function DoPenjualanPage() {
           color: row["Product Colour"] || "",
           quantity: parseInt(row.Qty?.toString()) || 0,
           year: row["Product Tahun"]?.toString() || "",
-          engineNumber: row["Engine Number"] || "",
-          chassisNumber: row["Chassis Number"] || "",
-          productCategory: row["Kategori Produk-1"] || "",
+          engineNumber: row["No Mesin"] || "",
+          chassisNumber: row["No Rangka"] || "",
+          productCategory: row.Kategori || "",
           salesPic: row["Sales Coord Name"] || "",
           salesForce: row.Salesforce || "",
           jabatanSalesForce: row["Jabatan Salesforce"] || "",
@@ -449,7 +449,7 @@ export default function DoPenjualanPage() {
           jpPo: parseInt(row["JP PO"]?.toString()) || null,
           tenor: parseInt(row.Tenor?.toString()) || null,
           branchCode: row["Branch Code"] || "",
-          typeName: row["Product Type"] || "",
+          typeName: row["Kode Type"] || "",
           originalRowIndex: index,
         };
       } catch (error) {
@@ -544,6 +544,7 @@ export default function DoPenjualanPage() {
     setImportLoading(true);
     setImportResult(null);
     try {
+      console.log({ csvData });
       const transformedData = transformCsvDataToApiFormat(csvData);
 
       const response = await fetch("/api/do-penjualan", {
