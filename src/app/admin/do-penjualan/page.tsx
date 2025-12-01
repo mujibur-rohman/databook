@@ -1005,6 +1005,7 @@ export default function DoPenjualanPage() {
                   Import Data
                 </Button>
                 <ImportData
+                  useMonthFilter={false}
                   maxFileSize={30}
                   onCancel={() => setOpenImport(false)}
                   visible={openImport}

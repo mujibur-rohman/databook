@@ -23,6 +23,7 @@ import {
   CheckCircle,
 } from "@phosphor-icons/react";
 import * as XLSX from "xlsx";
+import dayjs from "dayjs";
 
 const { Title, Text } = Typography;
 const { Dragger } = Upload;
@@ -37,6 +38,8 @@ interface ImportDataProps {
   maxFileSize?: number; // in MB
   worksheetName?: string;
   loadingConfirm?: boolean;
+  useMonthFilter?: boolean;
+  dateColumnName?: string; // Column name for date filtering (default: "Tanggal")
 }
 
 interface ParsedData {
@@ -55,6 +58,8 @@ export default function ImportData({
   templateColumns = [],
   maxFileSize = 10,
   loadingConfirm = false,
+  dateColumnName = "Tanggal",
+  useMonthFilter = true,
 }: ImportDataProps) {
   const [loading, setLoading] = useState(false);
   const [workbook, setWorkbook] = useState<XLSX.WorkBook | null>(null);
@@ -62,6 +67,10 @@ export default function ImportData({
   const [previewStep, setPreviewStep] = useState<"upload" | "preview">(
     "upload"
   );
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+  const [availableMonths, setAvailableMonths] = useState<
+    { label: string; value: string }[]
+  >([]);
 
   const parsedData: ParsedData | null = useMemo(() => {
     // // Determine worksheet to use
@@ -101,16 +110,77 @@ export default function ImportData({
         totalRecords: rows.length,
       };
 
+      // Extract available months from date column
+      const dateColumnIndex = headers.findIndex((h) => h === dateColumnName);
+      if (dateColumnIndex !== -1) {
+        const monthsSet = new Set<string>();
+        rows.forEach((row) => {
+          const dateValue = row[dateColumnIndex];
+          if (dateValue) {
+            // Handle Excel date numbers
+            let date;
+            if (typeof dateValue === "number") {
+              // Excel date to JS date
+              const excelEpoch = new Date(1899, 11, 30);
+              const excelEpochAsUnixTimestamp = excelEpoch.getTime();
+              const missingLeapYearDay = 24 * 60 * 60 * 1000;
+              const delta = excelEpochAsUnixTimestamp - missingLeapYearDay;
+              const excelTimestampAsUnixTimestamp =
+                delta + dateValue * 24 * 60 * 60 * 1000;
+              date = dayjs(new Date(excelTimestampAsUnixTimestamp));
+            } else {
+              date = dayjs(dateValue);
+            }
+
+            if (date.isValid()) {
+              const monthValue = date.format("YYYY-MM");
+              monthsSet.add(monthValue);
+            }
+          }
+        });
+
+        // Convert to array and sort
+        const months = Array.from(monthsSet)
+          .sort((a, b) => b.localeCompare(a))
+          .map((monthValue) => {
+            const date = dayjs(monthValue);
+            const monthNames = [
+              "Januari",
+              "Februari",
+              "Maret",
+              "April",
+              "Mei",
+              "Juni",
+              "Juli",
+              "Agustus",
+              "September",
+              "Oktober",
+              "November",
+              "Desember",
+            ];
+            const monthName = monthNames[date.month()];
+            const year = date.year();
+            return {
+              label: `${monthName} ${year}`,
+              value: monthValue,
+            };
+          });
+
+        setAvailableMonths(months);
+      }
+
       return parsed;
     }
 
     return null;
-  }, [workbook, worksheet]);
+  }, [workbook, worksheet, dateColumnName]);
 
   const resetState = () => {
     setWorkbook(null);
     setPreviewStep("upload");
     setLoading(false);
+    setSelectedMonth(null);
+    setAvailableMonths([]);
   };
 
   const handleCancel = () => {
@@ -161,8 +231,42 @@ export default function ImportData({
 
   const handleConfirmImport = () => {
     if (parsedData && onConfirmImport) {
+      let rowsToImport = parsedData.rows;
+
+      // Filter by selected month if applicable
+      if (selectedMonth && dateColumnName) {
+        const dateColumnIndex = parsedData.headers.findIndex(
+          (h) => h === dateColumnName
+        );
+
+        if (dateColumnIndex !== -1) {
+          rowsToImport = parsedData.rows.filter((row) => {
+            const dateValue = row[dateColumnIndex];
+            if (!dateValue) return false;
+
+            // Handle Excel date numbers
+            let date;
+            if (typeof dateValue === "number") {
+              const excelEpoch = new Date(1899, 11, 30);
+              const excelEpochAsUnixTimestamp = excelEpoch.getTime();
+              const missingLeapYearDay = 24 * 60 * 60 * 1000;
+              const delta = excelEpochAsUnixTimestamp - missingLeapYearDay;
+              const excelTimestampAsUnixTimestamp =
+                delta + dateValue * 24 * 60 * 60 * 1000;
+              date = dayjs(new Date(excelTimestampAsUnixTimestamp));
+            } else {
+              date = dayjs(dateValue);
+            }
+
+            if (!date.isValid()) return false;
+
+            return date.format("YYYY-MM") === selectedMonth;
+          });
+        }
+      }
+
       // Convert array of arrays back to objects
-      const dataObjects = parsedData.rows.map((row) => {
+      const dataObjects = rowsToImport.map((row) => {
         const obj: any = {};
         parsedData.headers.forEach((header, index) => {
           obj[header] = row[index] || "";
@@ -220,7 +324,34 @@ export default function ImportData({
               icon={<CheckCircle size={16} />}
               loading={loadingConfirm}
             >
-              Konfirmasi Import ({parsedData?.totalRecords} records)
+              Konfirmasi Import (
+              {selectedMonth
+                ? parsedData?.rows.filter((row) => {
+                    const dateColumnIndex = parsedData.headers.findIndex(
+                      (h) => h === dateColumnName
+                    );
+                    if (dateColumnIndex === -1) return true;
+                    const dateValue = row[dateColumnIndex];
+                    if (!dateValue) return false;
+                    let date;
+                    if (typeof dateValue === "number") {
+                      const excelEpoch = new Date(1899, 11, 30);
+                      const excelEpochAsUnixTimestamp = excelEpoch.getTime();
+                      const missingLeapYearDay = 24 * 60 * 60 * 1000;
+                      const delta =
+                        excelEpochAsUnixTimestamp - missingLeapYearDay;
+                      const excelTimestampAsUnixTimestamp =
+                        delta + dateValue * 24 * 60 * 60 * 1000;
+                      date = dayjs(new Date(excelTimestampAsUnixTimestamp));
+                    } else {
+                      date = dayjs(dateValue);
+                    }
+                    return (
+                      date.isValid() && date.format("YYYY-MM") === selectedMonth
+                    );
+                  }).length
+                : parsedData?.totalRecords}{" "}
+              records)
             </Button>
           </Space>
         )
@@ -316,6 +447,71 @@ export default function ImportData({
                       </div>
                     </div>
                   </Card>
+
+                  {useMonthFilter && availableMonths.length > 0 ? (
+                    <Card size="small" className="bg-blue-50">
+                      <div className="space-y-2">
+                        <Text strong>Filter Bulan:</Text>
+                        <Select
+                          placeholder="Pilih bulan atau kosongkan untuk import semua"
+                          value={selectedMonth}
+                          onChange={setSelectedMonth}
+                          style={{ width: "100%" }}
+                          allowClear
+                        >
+                          {availableMonths.map((month) => (
+                            <Select.Option
+                              key={month.value}
+                              value={month.value}
+                            >
+                              {month.label}
+                            </Select.Option>
+                          ))}
+                        </Select>
+                        {selectedMonth && (
+                          <Text type="secondary" className="text-xs block">
+                            📊 Data yang akan diimport:{" "}
+                            <strong>
+                              {
+                                parsedData.rows.filter((row) => {
+                                  const dateColumnIndex =
+                                    parsedData.headers.findIndex(
+                                      (h) => h === dateColumnName
+                                    );
+                                  if (dateColumnIndex === -1) return true;
+                                  const dateValue = row[dateColumnIndex];
+                                  if (!dateValue) return false;
+                                  let date;
+                                  if (typeof dateValue === "number") {
+                                    const excelEpoch = new Date(1899, 11, 30);
+                                    const excelEpochAsUnixTimestamp =
+                                      excelEpoch.getTime();
+                                    const missingLeapYearDay =
+                                      24 * 60 * 60 * 1000;
+                                    const delta =
+                                      excelEpochAsUnixTimestamp -
+                                      missingLeapYearDay;
+                                    const excelTimestampAsUnixTimestamp =
+                                      delta + dateValue * 24 * 60 * 60 * 1000;
+                                    date = dayjs(
+                                      new Date(excelTimestampAsUnixTimestamp)
+                                    );
+                                  } else {
+                                    date = dayjs(dateValue);
+                                  }
+                                  return (
+                                    date.isValid() &&
+                                    date.format("YYYY-MM") === selectedMonth
+                                  );
+                                }).length
+                              }
+                            </strong>{" "}
+                            dari {parsedData.totalRecords} total records
+                          </Text>
+                        )}
+                      </div>
+                    </Card>
+                  ) : null}
 
                   <div>
                     <Title level={5} className="flex items-center gap-2">
