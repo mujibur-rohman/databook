@@ -39,6 +39,7 @@ interface ImportDataProps {
   worksheetName?: string;
   loadingConfirm?: boolean;
   useMonthFilter?: boolean;
+  filterMode?: "month" | "day"; // "month" for monthly filter, "day" for daily filter
   dateColumnName?: string; // Column name for date filtering (default: "Tanggal")
 }
 
@@ -59,7 +60,7 @@ export default function ImportData({
   maxFileSize = 10,
   loadingConfirm = false,
   dateColumnName = "Tanggal",
-  useMonthFilter = true,
+  filterMode = "month",
 }: ImportDataProps) {
   const [loading, setLoading] = useState(false);
   const [workbook, setWorkbook] = useState<XLSX.WorkBook | null>(null);
@@ -68,8 +69,12 @@ export default function ImportData({
     "upload"
   );
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [availableMonths, setAvailableMonths] = useState<
     { label: string; value: string }[]
+  >([]);
+  const [availableDays, setAvailableDays] = useState<
+    { label: string; value: string; isYesterday?: boolean }[]
   >([]);
 
   const parsedData: ParsedData | null = useMemo(() => {
@@ -169,18 +174,84 @@ export default function ImportData({
         setAvailableMonths(months);
       }
 
+      // Extract available days (last 7 days) from date column for daily mode
+      if (filterMode === "day" && dateColumnIndex !== -1) {
+        const daysSet = new Set<string>();
+        const today = dayjs();
+        const sevenDaysAgo = today.subtract(7, "day");
+
+        rows.forEach((row) => {
+          const dateValue = row[dateColumnIndex];
+          if (dateValue) {
+            let date;
+            if (typeof dateValue === "number") {
+              const excelEpoch = new Date(1899, 11, 30);
+              const excelEpochAsUnixTimestamp = excelEpoch.getTime();
+              const missingLeapYearDay = 24 * 60 * 60 * 1000;
+              const delta = excelEpochAsUnixTimestamp - missingLeapYearDay;
+              const excelTimestampAsUnixTimestamp =
+                delta + dateValue * 24 * 60 * 60 * 1000;
+              date = dayjs(new Date(excelTimestampAsUnixTimestamp));
+            } else {
+              date = dayjs(dateValue);
+            }
+
+            if (
+              date.isValid() &&
+              date.isAfter(sevenDaysAgo) &&
+              date.isBefore(today.add(1, "day"))
+            ) {
+              const dayValue = date.format("YYYY-MM-DD");
+              daysSet.add(dayValue);
+            }
+          }
+        });
+
+        // Convert to array and sort (newest first)
+        const yesterday = today.subtract(1, "day");
+        const days = Array.from(daysSet)
+          .sort((a, b) => b.localeCompare(a))
+          .map((dayValue) => {
+            const date = dayjs(dayValue);
+            const isYesterday = date.isSame(yesterday, "day");
+            const dayNames = [
+              "Minggu",
+              "Senin",
+              "Selasa",
+              "Rabu",
+              "Kamis",
+              "Jumat",
+              "Sabtu",
+            ];
+            const dayName = dayNames[date.day()];
+            const formattedDate = date.format("DD/MM/YYYY");
+
+            return {
+              label: isYesterday
+                ? `Kemarin (${formattedDate})`
+                : `${dayName}, ${formattedDate}`,
+              value: dayValue,
+              isYesterday,
+            };
+          });
+
+        setAvailableDays(days);
+      }
+
       return parsed;
     }
 
     return null;
-  }, [workbook, worksheet, dateColumnName]);
+  }, [workbook, worksheet, dateColumnName, filterMode]);
 
   const resetState = () => {
     setWorkbook(null);
     setPreviewStep("upload");
     setLoading(false);
     setSelectedMonth(null);
+    setSelectedDay(null);
     setAvailableMonths([]);
+    setAvailableDays([]);
   };
 
   const handleCancel = () => {
@@ -234,7 +305,7 @@ export default function ImportData({
       let rowsToImport = parsedData.rows;
 
       // Filter by selected month if applicable
-      if (selectedMonth && dateColumnName) {
+      if (filterMode === "month" && selectedMonth && dateColumnName) {
         const dateColumnIndex = parsedData.headers.findIndex(
           (h) => h === dateColumnName
         );
@@ -325,7 +396,7 @@ export default function ImportData({
               loading={loadingConfirm}
             >
               Konfirmasi Import (
-              {selectedMonth
+              {filterMode === "month" && selectedMonth
                 ? parsedData?.rows.filter((row) => {
                     const dateColumnIndex = parsedData.headers.findIndex(
                       (h) => h === dateColumnName
@@ -348,6 +419,32 @@ export default function ImportData({
                     }
                     return (
                       date.isValid() && date.format("YYYY-MM") === selectedMonth
+                    );
+                  }).length
+                : filterMode === "day" && selectedDay
+                ? parsedData?.rows.filter((row) => {
+                    const dateColumnIndex = parsedData.headers.findIndex(
+                      (h) => h === dateColumnName
+                    );
+                    if (dateColumnIndex === -1) return true;
+                    const dateValue = row[dateColumnIndex];
+                    if (!dateValue) return false;
+                    let date;
+                    if (typeof dateValue === "number") {
+                      const excelEpoch = new Date(1899, 11, 30);
+                      const excelEpochAsUnixTimestamp = excelEpoch.getTime();
+                      const missingLeapYearDay = 24 * 60 * 60 * 1000;
+                      const delta =
+                        excelEpochAsUnixTimestamp - missingLeapYearDay;
+                      const excelTimestampAsUnixTimestamp =
+                        delta + dateValue * 24 * 60 * 60 * 1000;
+                      date = dayjs(new Date(excelTimestampAsUnixTimestamp));
+                    } else {
+                      date = dayjs(dateValue);
+                    }
+                    return (
+                      date.isValid() &&
+                      date.format("YYYY-MM-DD") === selectedDay
                     );
                   }).length
                 : parsedData?.totalRecords}{" "}
@@ -448,7 +545,7 @@ export default function ImportData({
                     </div>
                   </Card>
 
-                  {useMonthFilter && availableMonths.length > 0 ? (
+                  {filterMode === "month" && availableMonths.length > 0 ? (
                     <Card size="small" className="bg-blue-50">
                       <div className="space-y-2">
                         <Text strong>Filter Bulan:</Text>
@@ -502,6 +599,68 @@ export default function ImportData({
                                   return (
                                     date.isValid() &&
                                     date.format("YYYY-MM") === selectedMonth
+                                  );
+                                }).length
+                              }
+                            </strong>{" "}
+                            dari {parsedData.totalRecords} total records
+                          </Text>
+                        )}
+                      </div>
+                    </Card>
+                  ) : null}
+
+                  {filterMode === "day" && availableDays.length > 0 ? (
+                    <Card size="small" className="bg-green-50">
+                      <div className="space-y-2">
+                        <Text strong>Filter Hari (7 Hari Terakhir):</Text>
+                        <Select
+                          placeholder="Pilih hari atau kosongkan untuk import semua"
+                          value={selectedDay}
+                          onChange={setSelectedDay}
+                          style={{ width: "100%" }}
+                          allowClear
+                        >
+                          {availableDays.map((day) => (
+                            <Select.Option key={day.value} value={day.value}>
+                              {day.label}
+                            </Select.Option>
+                          ))}
+                        </Select>
+                        {selectedDay && (
+                          <Text type="secondary" className="text-xs block">
+                            📊 Data yang akan diimport:{" "}
+                            <strong>
+                              {
+                                parsedData.rows.filter((row) => {
+                                  const dateColumnIndex =
+                                    parsedData.headers.findIndex(
+                                      (h) => h === dateColumnName
+                                    );
+                                  if (dateColumnIndex === -1) return true;
+                                  const dateValue = row[dateColumnIndex];
+                                  if (!dateValue) return false;
+                                  let date;
+                                  if (typeof dateValue === "number") {
+                                    const excelEpoch = new Date(1899, 11, 30);
+                                    const excelEpochAsUnixTimestamp =
+                                      excelEpoch.getTime();
+                                    const missingLeapYearDay =
+                                      24 * 60 * 60 * 1000;
+                                    const delta =
+                                      excelEpochAsUnixTimestamp -
+                                      missingLeapYearDay;
+                                    const excelTimestampAsUnixTimestamp =
+                                      delta + dateValue * 24 * 60 * 60 * 1000;
+                                    date = dayjs(
+                                      new Date(excelTimestampAsUnixTimestamp)
+                                    );
+                                  } else {
+                                    date = dayjs(dateValue);
+                                  }
+                                  return (
+                                    date.isValid() &&
+                                    date.format("YYYY-MM-DD") === selectedDay
                                   );
                                 }).length
                               }
