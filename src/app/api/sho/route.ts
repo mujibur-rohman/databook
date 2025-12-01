@@ -208,13 +208,13 @@ export async function POST(request: NextRequest) {
         const type = await db
           .select()
           .from(types)
-          .where(ilike(types.name, item.typeName))
+          .where(ilike(types.code, item.typeName))
           .limit(1);
 
         if (type.length === 0) {
           errors.push({
             index: i,
-            error: `Type dengan nama ${item.typeName} tidak ditemukan`,
+            error: `Type dengan code ${item.typeName} tidak ditemukan`,
           });
           continue;
         }

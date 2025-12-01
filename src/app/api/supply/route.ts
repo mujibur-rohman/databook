@@ -242,6 +242,7 @@ export async function POST(request: NextRequest) {
             faktur: item.faktur || null,
             fakturDate: item.fakturDate ? new Date(item.fakturDate) : null,
             date: item.date ? new Date(item.date) : null,
+            category: item.category || null,
             branchId: branch[0].id,
             typeId: type[0].id,
           })

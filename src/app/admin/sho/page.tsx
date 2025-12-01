@@ -45,18 +45,17 @@ interface Series {
 }
 
 interface CsvDataRow {
-  Cabang: string;
-  "Kode Cabang": string;
+  "Branch Name": string;
+  "Branch Code": string;
   Kategori: string;
   "Kode Unit": string;
-  Deskripsi: string;
+  Type: string;
   Warna: string;
   Lokasi: string;
-  "Tanggal GRN": number;
-  Mesin: string;
-  Rangka: string;
+  "No Mesin": string;
+  "No Rangka": string;
   "Tahun Rakit": number;
-  Jumlah: string;
+  QTY: string;
   "Posisi Stock": string;
   Status: string;
   "Umur Stock / (hari)": string;
@@ -332,19 +331,17 @@ export default function ShoPage() {
           category: row.Kategori || "",
           color: row.Warna || "",
           location: row.Lokasi || "",
-          quantity: parseInt(row.Jumlah?.toString()) || 0,
-          dateGrn: excelDateToJSDate(row["Tanggal GRN"]),
-          rangkaNumber: row.Rangka || "",
+          quantity: parseInt(row.QTY?.toString()) || 0,
+          rangkaNumber: row["No Rangka"] || "",
           year: row["Tahun Rakit"]?.toString() || "",
           positionStock: row["Posisi Stock"] || "",
           status: row.Status || "",
-          count: null,
           umurStock: parseInt(row["Umur Stock / (hari)"]?.toString()) || null,
           umurMutasi: parseInt(row["Umur Mutasi / (hari)"]?.toString()) || null,
           sourceDoc: row["Source Doc"] || "",
           sourceBranch: row["Source Branch"] || "",
           date: excelDateToJSDate(row.Tanggal),
-          branchCode: row["Kode Cabang"] || "",
+          branchCode: row["Branch Code"] || "",
           typeName: row["Kode Unit"] || "",
           originalRowIndex: index,
         };
@@ -682,7 +679,6 @@ export default function ShoPage() {
           </div>
         </div>
 
-   
         {/* Import Result Feedback */}
         {importResult && (
           <Card className="mb-4">
@@ -894,7 +890,7 @@ export default function ShoPage() {
                   onCancel={() => setOpenImport(false)}
                   visible={openImport}
                   onConfirmImport={handleImportConfirm}
-                  title="Import Supply Data"
+                  title="Import SHO Data"
                   loadingConfirm={importLoading}
                   templateColumns={[
                     "Cabang",

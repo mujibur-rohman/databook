@@ -1,0 +1,1 @@
+ALTER TABLE "supply" ADD COLUMN "category" varchar(255);

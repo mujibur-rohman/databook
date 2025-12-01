@@ -75,13 +75,14 @@ export const supply = pgTable("supply", {
   status: varchar("status", { length: 255 }),
   machineNumber: varchar("machine_number", { length: 255 }),
   rangkaNumber: varchar("rangka_number", { length: 255 }),
-  price: integer("price"),
-  discount: integer("discount"),
-  apUnit: integer("ap_unit"),
+  price: varchar("price", { length: 255 }),
+  discount: varchar("discount", { length: 255 }),
+  apUnit: varchar("ap_unit", { length: 255 }),
   quantity: integer("quantity"),
   faktur: varchar("faktur", { length: 255 }),
   fakturDate: timestamp("faktur_date"),
   date: timestamp("date"),
+  category: varchar("category", { length: 255 }),
   branchId: integer("branch_id")
     .notNull()
     .references(() => branches.id, { onDelete: "cascade" }),
@@ -140,6 +141,7 @@ export const stu = pgTable("stu", {
   rangkaNumber: varchar("rangka_number", { length: 255 }),
   quantity: integer("quantity"),
   date: timestamp("date"),
+  category: varchar("category", { length: 255 }),
   branchId: integer("branch_id")
     .notNull()
     .references(() => branches.id, { onDelete: "cascade" }),
@@ -199,6 +201,7 @@ export const spk = pgTable("spk", {
   tenor: varchar("tenor", { length: 255 }),
   status: varchar("status", { length: 255 }),
   cancelReason: varchar("cancel_reason", { length: 255 }),
+  category: varchar("category", { length: 255 }),
   branchId: integer("branch_id")
     .notNull()
     .references(() => branches.id, { onDelete: "cascade" }),

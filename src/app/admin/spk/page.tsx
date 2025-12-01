@@ -43,8 +43,8 @@ interface Series {
 }
 
 interface CsvDataRow {
-  "Kode Cabang": string;
-  "Nama Cabang": string;
+  "Branch Code": string;
+  "Branch Name": string;
   "No. SPK": string;
   Tanggal: number;
   "Nama Customer": string;
@@ -55,7 +55,7 @@ interface CsvDataRow {
   "Nama Finco": string;
   "Sales Source": string;
   "No. Register SPK": string;
-  "Kode Produk": string;
+  "Kode Unit": string;
   Warna: string;
   QTY: string;
   "DP Total": string;
@@ -64,6 +64,7 @@ interface CsvDataRow {
   Tenor: string;
   Status: string;
   "Alasan Cancel": string;
+  Kategori: string;
   Type: string;
   Series: string;
 }
@@ -351,8 +352,9 @@ export default function SpkPage() {
           tenor: row.Tenor || "",
           status: row.Status || "",
           cancelReason: row["Alasan Cancel"] || "",
-          branchCode: row["Kode Cabang"] || "",
-          typeName: row["Kode Produk"] || "",
+          category: row.Kategori || "",
+          branchCode: row["Branch Code"] || "",
+          typeName: row["Kode Unit"] || "",
           originalRowIndex: index,
         };
       } catch (error) {

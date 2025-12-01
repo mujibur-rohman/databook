@@ -93,7 +93,7 @@ interface ApiResponse {
 
 interface CsvDataRow {
   No: number;
-  Cabang: string;
+  "Branch Name": string;
   Supplier: string;
   "BPB No": string;
   Tanggal: number;
@@ -110,8 +110,9 @@ interface CsvDataRow {
   "Harga/Unit": string;
   Discount: string;
   "AP. Unit": string;
-  "Kode Cabang": string;
+  "Branch Code": string;
   Series: string;
+  Kategori: string;
 }
 
 interface ImportError {
@@ -243,15 +244,16 @@ export default function SupplyPage() {
           status: row["Status."] || "",
           machineNumber: row["No. Mesin"] || "",
           frameNumber: row["No. Rangka"] || "",
-          pricePerUnit: parseInt(row["Harga/Unit"]) || 0,
-          discount: parseInt(row.Discount) || 0,
-          apUnit: parseInt(row["AP. Unit"]) || 0,
+          pricePerUnit: row["Harga/Unit"] || 0,
+          discount: row.Discount || 0,
+          apUnit: row["AP. Unit"] || 0,
           quantity: parseInt(row.QTY.toString()) || 0,
           faktur: row.Faktur || "",
           fakturDate: excelDateToJSDate(row["Faktur Date"]),
           date: excelDateToJSDate(row.Tanggal),
-          branchCode: row["Kode Cabang"] || "",
+          branchCode: row["Branch Code"] || "",
           typeName: row.Type || "",
+          category: row.Kategori || "",
           originalRowIndex: index,
         };
       } catch (error) {
@@ -273,6 +275,7 @@ export default function SupplyPage() {
           date: "",
           branchCode: "",
           typeName: "",
+          category: "",
           originalRowIndex: index,
         };
       }
@@ -459,10 +462,10 @@ export default function SupplyPage() {
   const handleImportConfirm = async (csvData: CsvDataRow[]) => {
     setImportLoading(true);
     setImportResult(null);
-
+    console.log({ csvData });
     try {
       const transformedData = transformCsvDataToApiFormat(csvData);
-
+      console.log({ transformedData });
       const response = await fetch("/api/supply", {
         method: "POST",
         headers: {

@@ -205,6 +205,7 @@ export async function POST(request: NextRequest) {
             date: item.date ? new Date(item.date) : null,
             branchId: branch[0].id,
             typeId: type[0].id,
+            category: item.category,
           })
           .returning();
 

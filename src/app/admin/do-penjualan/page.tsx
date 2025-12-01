@@ -1009,7 +1009,7 @@ export default function DoPenjualanPage() {
                   onCancel={() => setOpenImport(false)}
                   visible={openImport}
                   onConfirmImport={handleImportConfirm}
-                  title="Import Supply Data"
+                  title="Import DO Penjualan Data"
                   loadingConfirm={importLoading}
                   templateColumns={[
                     "No",

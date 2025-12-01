@@ -1,0 +1,1 @@
+ALTER TABLE "stu" ADD COLUMN "category" varchar(255);

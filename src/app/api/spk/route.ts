@@ -239,6 +239,7 @@ export async function POST(request: NextRequest) {
             tenor: item.tenor || null,
             status: item.status || null,
             cancelReason: item.cancelReason || null,
+            category: item.category,
             branchId: branch[0].id,
             typeId: type[0].id,
           })

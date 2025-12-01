@@ -44,13 +44,14 @@ interface Series {
 }
 
 interface CsvDataRow {
-  "Kode Cabang": string;
-  "NO Rangka": string;
+  "Branch Code": string;
+  "No Rangka": string;
   "No Mesin": string;
   QTY: number;
   Series: string;
-  TANGGAL: number;
+  Tanggal: number;
   TYPE: string;
+  Kategori: string;
 }
 
 interface StuData {
@@ -281,11 +282,12 @@ export default function StuPage() {
       try {
         return {
           machineNumber: row["No Mesin"] || "",
-          rangkaNumber: row["NO Rangka"] || "",
+          rangkaNumber: row["No Rangka"] || "",
           quantity: parseInt(row.QTY?.toString()) || 0,
-          date: excelDateToJSDate(row.TANGGAL),
-          branchCode: row["Kode Cabang"] || "",
+          date: excelDateToJSDate(row.Tanggal),
+          branchCode: row["Branch Code"] || "",
           typeName: row.TYPE || "",
+          category: row.Kategori || "",
           originalRowIndex: index,
         };
       } catch (error) {
@@ -744,7 +746,7 @@ export default function StuPage() {
                 onCancel={() => setOpenImport(false)}
                 visible={openImport}
                 onConfirmImport={handleImportConfirm}
-                title="Import Supply Data"
+                title="Import STU Data"
                 loadingConfirm={importLoading}
                 templateColumns={[
                   "Kode Cabang",
