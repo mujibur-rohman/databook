@@ -12,7 +12,6 @@ import {
   Select,
   Tag,
   message,
-  Spin,
   Modal,
 } from "antd";
 import { TrendUp, MagnifyingGlass, FunnelSimple } from "@phosphor-icons/react";
@@ -120,6 +119,11 @@ export default function SellInPage() {
   } | null>(null);
   const [importLoading, setImportLoading] = useState(false);
   const [undoLoading, setUndoLoading] = useState(false);
+  const [importProgress, setImportProgress] = useState<{
+    current: number;
+    total: number;
+    message: string;
+  } | null>(null);
 
   // Fetch sell-in data
   const fetchData = async (
@@ -386,73 +390,138 @@ export default function SellInPage() {
     });
   };
 
+  // Helper to chunk array
+  const chunkArray = <T,>(array: T[], size: number): T[][] => {
+    const chunks: T[][] = [];
+    for (let i = 0; i < array.length; i += size) {
+      chunks.push(array.slice(i, i + size));
+    }
+    return chunks;
+  };
+
   // Handle import confirmation
   const handleImportConfirm = async (csvData: CsvDataRow[]) => {
     setImportLoading(true);
     setImportResult(null);
+    setImportProgress(null);
+    const BATCH_SIZE = 3000;
+
+    // Initialize aggregated results
+    let totalSuccess = 0;
+    let totalError = 0;
+    let allErrors: ImportError[] = [];
+    let allSuccessfulIds: number[] = [];
 
     try {
+      console.log({ csvData });
       const transformedData = transformCsvDataToApiFormat(csvData);
+      const batches = chunkArray(transformedData, BATCH_SIZE);
+      const totalBatches = batches.length;
 
-      const response = await fetch("/api/sell-in", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify(transformedData),
+      // Set initial progress
+      setImportProgress({
+        current: 0,
+        total: totalBatches,
+        message: "Mempersiapkan data untuk diimport..."
       });
 
-      const result = await response.json();
-
-      if (response.ok || response.status === 207) {
-        // Extract successful IDs for rollback capability
-        const successfulIds = result.results
-          ? result.results
-              .filter((r: ImportApiResponse["results"][0]) => r.success)
-              .map((r: ImportApiResponse["results"][0]) => r.data.id)
-          : [];
-
-        setImportResult({
-          successCount: result.successCount || 0,
-          errorCount: result.errorCount || 0,
-          errors: result.errors || [],
-          successfulIds: successfulIds,
+      for (let i = 0; i < totalBatches; i++) {
+        // Update progress
+        setImportProgress({
+          current: i + 1,
+          total: totalBatches,
+          message: `Memproses batch ke-${i + 1} dari ${totalBatches} (${batches[i].length} records)`
         });
 
-        if (result.successCount > 0) {
-          toast.success(
-            `Berhasil mengimport ${result.successCount} data dari ${csvData.length} total data`
-          );
-          // Refresh data table
-          fetchData();
-        }
+        const batchData = batches[i];
+        console.log(
+          `Processing batch ${i + 1} of ${totalBatches} (${
+            batchData.length
+          } rows)`
+        );
 
-        if (result.errorCount > 0) {
-          toast.warning(
-            `${result.errorCount} data gagal diimport. Silakan lihat detail error di bawah.`
-          );
+        try {
+          const response = await fetch("/api/sell-in", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include",
+            body: JSON.stringify(batchData),
+          });
+
+          const result = await response.json();
+
+          if (response.ok || response.status === 207) {
+            // Aggregate success counts
+            totalSuccess += result.successCount || 0;
+            totalError += result.errorCount || 0;
+
+            // Collect successful IDs
+            if (result.results) {
+              const batchSuccessfulIds = result.results
+                .filter((r: ImportApiResponse["results"][0]) => r.success)
+                .map((r: ImportApiResponse["results"][0]) => r.data.id);
+              allSuccessfulIds = [...allSuccessfulIds, ...batchSuccessfulIds];
+            }
+
+            // Collect errors
+            if (result.errors) {
+              allErrors = [...allErrors, ...result.errors];
+            }
+          } else {
+            // Entire batch failed
+            totalError += batchData.length;
+            allErrors.push({
+              index: 0,
+              error: `Batch ${i + 1} failed: ${
+                result.error || "Unknown error"
+              }`,
+            });
+          }
+        } catch (error) {
+          console.error(`Error in batch ${i + 1}:`, error);
+          totalError += batchData.length;
+          allErrors.push({
+            index: 0,
+            error: `Batch ${i + 1} network error`,
+          });
         }
-      } else {
-        toast.error("Gagal mengimport data");
-        setImportResult({
-          successCount: 0,
-          errorCount: csvData.length,
-          errors: [{ index: 0, error: result.error || "Unknown error" }],
-          successfulIds: [],
-        });
+      }
+
+      // Set final results
+      setImportResult({
+        successCount: totalSuccess,
+        errorCount: totalError,
+        errors: allErrors,
+        successfulIds: allSuccessfulIds,
+      });
+
+      if (totalSuccess > 0) {
+        toast.success(
+          `Berhasil mengimport ${totalSuccess} data dari ${csvData.length} total data`
+        );
+        // Refresh data table
+        fetchData();
+      }
+
+      if (totalError > 0) {
+        toast.warning(
+          `${totalError} data gagal diimport. Silakan lihat detail error di bawah.`
+        );
       }
     } catch (error) {
       console.error("Import error:", error);
       toast.error("Terjadi kesalahan saat mengimport data");
       setImportResult({
-        successCount: 0,
-        errorCount: csvData.length,
-        errors: [{ index: 0, error: "Network or server error" }],
-        successfulIds: [],
+        successCount: totalSuccess,
+        errorCount: csvData.length - totalSuccess,
+        errors: [...allErrors, { index: 0, error: "Process interrupted" }],
+        successfulIds: allSuccessfulIds,
       });
     } finally {
       setImportLoading(false);
+      setImportProgress(null);
       setOpenImport(false);
     }
   };
@@ -749,6 +818,7 @@ export default function SellInPage() {
                 onConfirmImport={handleImportConfirm}
                 title="Import Sell-In Data"
                 loadingConfirm={importLoading}
+                importProgress={importProgress}
                 templateColumns={[
                   "Desciption Unit",
                   "Type",
@@ -759,16 +829,6 @@ export default function SellInPage() {
                   "Series",
                 ]}
               />
-              {importLoading && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                  <div className="bg-white p-6 rounded-lg">
-                    <Spin size="large" />
-                    <div className="mt-4">
-                      <Text>Sedang memproses import data...</Text>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
 
             <div className="flex justify-between items-center">

@@ -15,6 +15,7 @@ import {
   Card,
   message,
   Select,
+  Progress,
 } from "antd";
 import {
   CloudArrowUp,
@@ -41,6 +42,11 @@ interface ImportDataProps {
   useMonthFilter?: boolean;
   filterMode?: "month" | "day"; // "month" for monthly filter, "day" for daily filter
   dateColumnName?: string; // Column name for date filtering (default: "Tanggal")
+  importProgress?: {
+    current: number;
+    total: number;
+    message: string;
+  } | null;
 }
 
 interface ParsedData {
@@ -61,6 +67,7 @@ export default function ImportData({
   loadingConfirm = false,
   dateColumnName = "Tanggal",
   filterMode = "month",
+  importProgress = null,
 }: ImportDataProps) {
   const [loading, setLoading] = useState(false);
   const [workbook, setWorkbook] = useState<XLSX.WorkBook | null>(null);
@@ -386,7 +393,10 @@ export default function ImportData({
       footer={
         previewStep === "upload" ? null : (
           <Space>
-            <Button onClick={() => setPreviewStep("upload")}>
+            <Button 
+              onClick={() => setPreviewStep("upload")}
+              disabled={loadingConfirm}
+            >
               Pilih File Lain
             </Button>
             <Button
@@ -394,8 +404,9 @@ export default function ImportData({
               onClick={handleConfirmImport}
               icon={<CheckCircle size={16} />}
               loading={loadingConfirm}
+              disabled={loadingConfirm}
             >
-              Konfirmasi Import (
+              {loadingConfirm ? "Mengimport..." : "Konfirmasi Import"} (
               {filterMode === "month" && selectedMonth
                 ? parsedData?.rows.filter((row) => {
                     const dateColumnIndex = parsedData.headers.findIndex(
@@ -453,8 +464,45 @@ export default function ImportData({
           </Space>
         )
       }
-      maskClosable={false}
+      maskClosable={!loadingConfirm}
+      closable={!loadingConfirm}
     >
+      {/* Import Progress Overlay */}
+      {importProgress && loadingConfirm && (
+        <div className="absolute inset-0 bg-white bg-opacity-95 z-50 flex flex-col items-center justify-center">
+          <div className="text-center space-y-6 p-8">
+            <div className="text-2xl">📤</div>
+            <div className="space-y-3">
+              <Text strong className="text-lg block">
+                Mengimport Data...
+              </Text>
+              <Progress 
+                percent={Math.round((importProgress.current / importProgress.total) * 100)}
+                status="active"
+                strokeColor={{
+                  '0%': '#108ee9',
+                  '100%': '#87d068',
+                }}
+                size="default"
+                className="w-80"
+              />
+              <div className="space-y-1">
+                <Text type="secondary" className="text-sm block">
+                  {importProgress.message}
+                </Text>
+                <Text type="secondary" className="text-xs block">
+                  Batch {importProgress.current} dari {importProgress.total}
+                </Text>
+              </div>
+            </div>
+            <div className="flex items-center justify-center space-x-2 text-blue-500">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+              <Text className="text-sm">Mohon tunggu, jangan tutup halaman ini...</Text>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <Spin spinning={loading}>
         {previewStep === "upload" ? (
           // Upload Step

@@ -1,30 +1,31 @@
+import { hashPassword } from "@/lib/auth";
 import { db } from "../src/db";
-import { series, types } from "../src/db/schema";
-import { SERIES_DATA, TYPES_DATA } from "./data";
+import { branches, series, types, users } from "../src/db/schema";
+import { BRANCHES_DATA, SERIES_DATA, TYPES_DATA } from "./data";
 
 async function seed() {
   try {
     console.log("🌱 Seeding database...");
 
     // Create admin user
-    // const hashedAdminPassword = await hashPassword("admin123");
-    // const adminUser = await db
-    //   .insert(users)
-    //   .values({
-    //     username: "admin",
-    //     password: `${hashedAdminPassword}`,
-    //     isActive: true,
-    //   })
-    //   .returning();
+    const hashedAdminPassword = await hashPassword("admin123");
+    const adminUser = await db
+      .insert(users)
+      .values({
+        username: "admin",
+        password: `${hashedAdminPassword}`,
+        isActive: true,
+      })
+      .returning();
 
-    // console.log("✅ Admin user created:", adminUser[0]);
+    console.log("✅ Admin user created:", adminUser[0]);
 
-    // const sampleBranches = await db
-    //   .insert(branches)
-    //   .values(BRANCHES_DATA.map((b) => ({ name: b.name, code: b.code })))
-    //   .returning();
+    const sampleBranches = await db
+      .insert(branches)
+      .values(BRANCHES_DATA.map((b) => ({ name: b.name, code: b.code })))
+      .returning();
 
-    // console.log("✅ Sample branches created:", sampleBranches.length);
+    console.log("✅ Sample branches created:", sampleBranches.length);
 
     const sampleSeries = await db
       .insert(series)
