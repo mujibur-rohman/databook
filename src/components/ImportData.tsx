@@ -393,7 +393,7 @@ export default function ImportData({
       footer={
         previewStep === "upload" ? null : (
           <Space>
-            <Button 
+            <Button
               onClick={() => setPreviewStep("upload")}
               disabled={loadingConfirm}
             >
@@ -476,12 +476,14 @@ export default function ImportData({
               <Text strong className="text-lg block">
                 Mengimport Data...
               </Text>
-              <Progress 
-                percent={Math.round((importProgress.current / importProgress.total) * 100)}
+              <Progress
+                percent={Math.round(
+                  (importProgress.current / importProgress.total) * 100
+                )}
                 status="active"
                 strokeColor={{
-                  '0%': '#108ee9',
-                  '100%': '#87d068',
+                  "0%": "#108ee9",
+                  "100%": "#87d068",
                 }}
                 size="default"
                 className="w-80"
@@ -497,12 +499,14 @@ export default function ImportData({
             </div>
             <div className="flex items-center justify-center space-x-2 text-blue-500">
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
-              <Text className="text-sm">Mohon tunggu, jangan tutup halaman ini...</Text>
+              <Text className="text-sm">
+                Mohon tunggu, jangan tutup halaman ini...
+              </Text>
             </div>
           </div>
         </div>
       )}
-      
+
       <Spin spinning={loading}>
         {previewStep === "upload" ? (
           // Upload Step

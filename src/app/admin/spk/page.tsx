@@ -479,7 +479,7 @@ export default function SpkPage() {
       setImportProgress({
         current: 0,
         total: totalBatches,
-        message: "Mempersiapkan data untuk diimport..."
+        message: "Mempersiapkan data untuk diimport...",
       });
 
       for (let i = 0; i < totalBatches; i++) {
@@ -487,7 +487,9 @@ export default function SpkPage() {
         setImportProgress({
           current: i + 1,
           total: totalBatches,
-          message: `Memproses batch ke-${i + 1} dari ${totalBatches} (${batches[i].length} records)`
+          message: `Memproses batch ke-${i + 1} dari ${totalBatches} (${
+            batches[i].length
+          } records)`,
         });
 
         const batchData = batches[i];
